@@ -1,0 +1,55 @@
+import { defineStore } from 'pinia'
+import type { DocFileVO, DocStatus, ParseResultVO } from '@/types/document'
+
+export interface DocumentState {
+  docs: DocFileVO[]
+  results: Record<string, ParseResultVO>
+}
+
+const STORAGE_KEY = 'aimap.docs'
+
+export const useDocumentStore = defineStore('document', {
+  state: (): DocumentState => ({
+    docs: [],
+    results: {},
+  }),
+  actions: {
+    hydrate() {
+      const raw = sessionStorage.getItem(STORAGE_KEY)
+      if (!raw) return
+      try {
+        const data = JSON.parse(raw) as Partial<DocumentState>
+        this.docs = Array.isArray(data.docs) ? (data.docs as DocFileVO[]) : []
+        this.results = data.results && typeof data.results === 'object' ? (data.results as Record<string, ParseResultVO>) : {}
+      } catch {
+        sessionStorage.removeItem(STORAGE_KEY)
+      }
+    },
+    persist() {
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          docs: this.docs,
+          results: this.results,
+        }),
+      )
+    },
+    addDoc(doc: DocFileVO) {
+      const idx = this.docs.findIndex((d) => d.id === doc.id)
+      if (idx >= 0) this.docs.splice(idx, 1, doc)
+      else this.docs.unshift(doc)
+      this.persist()
+    },
+    updateStatus(docId: string, status: DocStatus) {
+      const d = this.docs.find((x) => x.id === docId)
+      if (!d) return
+      d.status = status
+      this.persist()
+    },
+    setResult(docId: string, result: ParseResultVO) {
+      this.results[docId] = result
+      this.persist()
+    },
+  },
+})
+

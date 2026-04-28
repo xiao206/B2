@@ -1,11 +1,10 @@
 import { http } from '@/api/http'
 import { mockDocument } from '@/api/mock'
+import { isMockEnabled } from '@/api/env'
 import type { DocType, ParseResultVO } from '@/types/document'
 
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
-
 export async function uploadDocument(payload: { file: File; docType: DocType }): Promise<{ docId: string }> {
-  if (useMock) {
+  if (isMockEnabled()) {
     const fileType = payload.file.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'DOC'
     return mockDocument.upload({ fileName: payload.file.name, fileType, docType: payload.docType })
   }
@@ -17,12 +16,11 @@ export async function uploadDocument(payload: { file: File; docType: DocType }):
 }
 
 export async function getDocumentStatus(docId: string): Promise<{ id: string; status: string }> {
-  if (useMock) return mockDocument.status(docId)
+  if (isMockEnabled()) return mockDocument.status(docId)
   return http.get(`/document/${encodeURIComponent(docId)}/status`)
 }
 
 export async function getParseResult(docId: string): Promise<ParseResultVO> {
-  if (useMock) return mockDocument.result(docId)
+  if (isMockEnabled()) return mockDocument.result(docId)
   return http.get(`/document/${encodeURIComponent(docId)}/result`)
 }
-

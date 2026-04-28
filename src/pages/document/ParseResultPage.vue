@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getParseResult } from '@/api/document'
 import type { ParseResultVO } from '@/types/document'
+import { useDocumentStore } from '@/stores/document'
 
 const route = useRoute()
 const router = useRouter()
+const docsStore = useDocumentStore()
 
 const docId = computed(() => String(route.params.docId || ''))
 const isCompany = computed(() => route.path.startsWith('/company'))
@@ -15,10 +17,36 @@ const base = computed(() => (isCompany.value ? '/company' : '/person'))
 const loading = ref(true)
 const data = ref<ParseResultVO | null>(null)
 
+const parsed = computed(() => {
+  const v = data.value?.resultJson
+  if (!v || typeof v !== 'object') return null
+  return v as any
+})
+
+const skills = computed<string[]>(() => {
+  const s = parsed.value?.skills
+  return Array.isArray(s) ? s.filter((x: any) => typeof x === 'string') : []
+})
+
+const educations = computed<Array<{ school?: string; degree?: string; major?: string }>>(() => {
+  const e = parsed.value?.education
+  return Array.isArray(e) ? e : []
+})
+
+const projects = computed<Array<{ name?: string; summary?: string }>>(() => {
+  const p = parsed.value?.projects
+  return Array.isArray(p) ? p : []
+})
+
 onMounted(async () => {
   loading.value = true
   try {
     data.value = await getParseResult(docId.value)
+    if (data.value) {
+      docsStore.hydrate()
+      docsStore.setResult(docId.value, data.value)
+      docsStore.updateStatus(docId.value, data.value.status)
+    }
   } catch (e: any) {
     ElMessage.error(e?.message || '获取解析结果失败')
   } finally {
@@ -55,10 +83,38 @@ const goGraph = () => {
           <el-tab-pane label="结构化字段">
             <el-descriptions :column="1" border>
               <el-descriptions-item label="状态">{{ data.status }}</el-descriptions-item>
-              <el-descriptions-item label="摘要">
-                <span class="text-sm text-zinc-700">演示数据，可替换为后端真实解析字段。</span>
-              </el-descriptions-item>
             </el-descriptions>
+
+            <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <el-card shadow="never" class="lg:col-span-1">
+                <div class="text-sm font-semibold text-zinc-700">技能</div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <el-tag v-for="s in skills" :key="s" type="success">{{ s }}</el-tag>
+                  <div v-if="skills.length === 0" class="text-sm text-zinc-600">暂无</div>
+                </div>
+              </el-card>
+              <el-card shadow="never" class="lg:col-span-2">
+                <div class="text-sm font-semibold text-zinc-700">教育经历</div>
+                <div class="mt-3 space-y-2">
+                  <div v-for="(e, idx) in educations" :key="idx" class="rounded-lg border border-zinc-200 bg-white p-3">
+                    <div class="text-sm text-zinc-800">{{ e.school || '未知学校' }}</div>
+                    <div class="mt-1 text-xs text-zinc-500">{{ [e.degree, e.major].filter(Boolean).join(' / ') }}</div>
+                  </div>
+                  <div v-if="educations.length === 0" class="text-sm text-zinc-600">暂无</div>
+                </div>
+              </el-card>
+            </div>
+
+            <el-card shadow="never" class="mt-4">
+              <div class="text-sm font-semibold text-zinc-700">项目经历</div>
+              <div class="mt-3 space-y-2">
+                <div v-for="(p, idx) in projects" :key="idx" class="rounded-lg border border-zinc-200 bg-white p-3">
+                  <div class="text-sm text-zinc-800">{{ p.name || '未命名项目' }}</div>
+                  <div class="mt-1 text-sm text-zinc-600">{{ p.summary || '暂无描述' }}</div>
+                </div>
+                <div v-if="projects.length === 0" class="text-sm text-zinc-600">暂无</div>
+              </div>
+            </el-card>
 
             <div class="mt-4">
               <el-collapse>
@@ -82,4 +138,3 @@ const goGraph = () => {
     </el-card>
   </div>
 </template>
-

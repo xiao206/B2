@@ -6,6 +6,7 @@ import LoginPage from '@/pages/auth/LoginPage.vue'
 import RegisterPage from '@/pages/auth/RegisterPage.vue'
 import PersonDashboardPage from '@/pages/person/PersonDashboardPage.vue'
 import CompanyDashboardPage from '@/pages/company/CompanyDashboardPage.vue'
+import DocumentListPage from '@/pages/document/DocumentListPage.vue'
 import DocumentUploadPage from '@/pages/document/DocumentUploadPage.vue'
 import ParseTaskPage from '@/pages/document/ParseTaskPage.vue'
 import ParseResultPage from '@/pages/document/ParseResultPage.vue'
@@ -14,6 +15,8 @@ import MatchListPage from '@/pages/match/MatchListPage.vue'
 import MatchDetailPage from '@/pages/match/MatchDetailPage.vue'
 import AdminHomePage from '@/pages/admin/AdminHomePage.vue'
 import AdminUsersPage from '@/pages/admin/AdminUsersPage.vue'
+import AdminDocumentsPage from '@/pages/admin/AdminDocumentsPage.vue'
+import AdminDataPage from '@/pages/admin/AdminDataPage.vue'
 import AdminMonitorPage from '@/pages/admin/AdminMonitorPage.vue'
 import AdminAuditPage from '@/pages/admin/AdminAuditPage.vue'
 import ForbiddenPage from '@/pages/system/ForbiddenPage.vue'
@@ -49,6 +52,7 @@ export const routes: RouteRecordRaw[] = [
     meta: { userTypes: ['PERSON'], title: '个人端' },
     children: [
       { path: 'dashboard', name: 'PersonDashboard', component: PersonDashboardPage, meta: { userTypes: ['PERSON'], title: '工作台' } },
+      { path: 'doc/list', name: 'PersonDocList', component: DocumentListPage, meta: { userTypes: ['PERSON'], title: '文档中心' } },
       { path: 'doc/upload', name: 'PersonDocUpload', component: DocumentUploadPage, meta: { userTypes: ['PERSON'], title: '简历上传' } },
       { path: 'doc/task/:docId', name: 'PersonParseTask', component: ParseTaskPage, meta: { userTypes: ['PERSON'], title: '解析任务' } },
       { path: 'doc/result/:docId', name: 'PersonParseResult', component: ParseResultPage, meta: { userTypes: ['PERSON'], title: '解析结果' } },
@@ -63,6 +67,7 @@ export const routes: RouteRecordRaw[] = [
     meta: { userTypes: ['COMPANY'], title: '企业端' },
     children: [
       { path: 'dashboard', name: 'CompanyDashboard', component: CompanyDashboardPage, meta: { userTypes: ['COMPANY'], title: '工作台' } },
+      { path: 'doc/list', name: 'CompanyDocList', component: DocumentListPage, meta: { userTypes: ['COMPANY'], title: '文档中心' } },
       { path: 'doc/upload', name: 'CompanyDocUpload', component: DocumentUploadPage, meta: { userTypes: ['COMPANY'], title: 'JD 上传' } },
       { path: 'doc/task/:docId', name: 'CompanyParseTask', component: ParseTaskPage, meta: { userTypes: ['COMPANY'], title: '解析任务' } },
       { path: 'doc/result/:docId', name: 'CompanyParseResult', component: ParseResultPage, meta: { userTypes: ['COMPANY'], title: '解析结果' } },
@@ -78,6 +83,8 @@ export const routes: RouteRecordRaw[] = [
     children: [
       { path: '', name: 'AdminHome', component: AdminHomePage, meta: { userTypes: ['ADMIN'], title: '概览' } },
       { path: 'users', name: 'AdminUsers', component: AdminUsersPage, meta: { userTypes: ['ADMIN'], title: '用户管理' } },
+      { path: 'docs', name: 'AdminDocs', component: AdminDocumentsPage, meta: { userTypes: ['ADMIN'], title: '文档库' } },
+      { path: 'data', name: 'AdminData', component: AdminDataPage, meta: { userTypes: ['ADMIN'], title: '数据维护' } },
       { path: 'monitor', name: 'AdminMonitor', component: AdminMonitorPage, meta: { userTypes: ['ADMIN'], title: '运营监控' } },
       { path: 'audit', name: 'AdminAudit', component: AdminAuditPage, meta: { userTypes: ['ADMIN'], title: '日志审计' } },
     ],
@@ -85,4 +92,3 @@ export const routes: RouteRecordRaw[] = [
   { path: '/403', name: 'Forbidden', component: ForbiddenPage, meta: { public: true, title: '无权限' } },
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFoundPage, meta: { public: true, title: '页面不存在' } },
 ]
-

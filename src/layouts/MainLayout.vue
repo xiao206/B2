@@ -13,14 +13,14 @@ const menuItems = computed(() => {
   if (auth.userType === 'COMPANY') {
     return [
       { index: `${basePath.value}/dashboard`, label: '工作台' },
-      { index: `${basePath.value}/doc/upload`, label: 'JD 上传' },
+      { index: `${basePath.value}/doc/list`, label: '文档中心' },
       { index: `${basePath.value}/graph/job-001`, label: '职位图谱' },
       { index: `${basePath.value}/match/candidates`, label: '候选人推荐' },
     ]
   }
   return [
     { index: `${basePath.value}/dashboard`, label: '工作台' },
-    { index: `${basePath.value}/doc/upload`, label: '简历上传' },
+    { index: `${basePath.value}/doc/list`, label: '文档中心' },
     { index: `${basePath.value}/graph/person-001`, label: '能力图谱' },
     { index: `${basePath.value}/match/jobs`, label: '职位推荐' },
   ]
@@ -28,7 +28,14 @@ const menuItems = computed(() => {
 
 const active = computed(() => {
   const p = route.path
-  const hit = menuItems.value.find((i) => p.startsWith(i.index.split('/graph/')[0]) && (i.index.includes('/graph/') ? p.includes('/graph/') : p === i.index || p.startsWith(i.index)))
+  if (p.startsWith(`${basePath.value}/doc/`)) return `${basePath.value}/doc/list`
+  if (p.startsWith(`${basePath.value}/graph/`)) {
+    return auth.userType === 'COMPANY' ? `${basePath.value}/graph/job-001` : `${basePath.value}/graph/person-001`
+  }
+  if (p.startsWith(`${basePath.value}/match/`)) {
+    return auth.userType === 'COMPANY' ? `${basePath.value}/match/candidates` : `${basePath.value}/match/jobs`
+  }
+  const hit = menuItems.value.find((i) => p === i.index || p.startsWith(`${i.index}/`))
   return hit?.index ?? menuItems.value[0]?.index ?? ''
 })
 
@@ -73,4 +80,3 @@ const logout = () => {
     </el-container>
   </el-container>
 </template>
-

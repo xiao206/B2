@@ -11,13 +11,29 @@ type DocTask = {
   result: ParseResultVO
 }
 
-const docs = new Map<string, DocTask>()
+const DOC_TASKS_KEY = 'aimap.mock.docTasks'
+
+const readDocTasks = (): Record<string, DocTask> => {
+  const raw = sessionStorage.getItem(DOC_TASKS_KEY)
+  if (!raw) return {}
+  try {
+    const v = JSON.parse(raw) as Record<string, DocTask>
+    return v && typeof v === 'object' ? v : {}
+  } catch {
+    sessionStorage.removeItem(DOC_TASKS_KEY)
+    return {}
+  }
+}
+
+const writeDocTasks = (tasks: Record<string, DocTask>) => {
+  sessionStorage.setItem(DOC_TASKS_KEY, JSON.stringify(tasks))
+}
 
 export const mockAuth = {
   async login(payload: { account: string; password: string; userType: UserType }) {
     const permissions =
       payload.userType === 'ADMIN'
-        ? ['ADMIN_USERS_VIEW', 'ADMIN_MONITOR_VIEW', 'ADMIN_AUDIT_VIEW']
+        ? ['ADMIN_USERS_VIEW', 'ADMIN_DOCS_VIEW', 'ADMIN_DATA_VIEW', 'ADMIN_MONITOR_VIEW', 'ADMIN_AUDIT_VIEW']
         : []
     return {
       token: `mock-token-${payload.userType.toLowerCase()}`,
@@ -50,11 +66,14 @@ export const mockDocument = {
       },
       evidences: [{ field: 'skills', page: 1, text: '熟悉 Vue3/TS、Spring Boot、SQL...' }],
     }
-    docs.set(id, { doc, startedAt: now, result })
+    const tasks = readDocTasks()
+    tasks[id] = { doc, startedAt: now, result }
+    writeDocTasks(tasks)
     return { docId: id }
   },
   async status(docId: string) {
-    const task = docs.get(docId)
+    const tasks = readDocTasks()
+    const task = tasks[docId]
     if (!task) {
       const err = new Error('任务不存在')
       ;(err as any).code = 'NOT_FOUND'
@@ -65,10 +84,13 @@ export const mockDocument = {
       elapsed < 1500 ? 'PENDING' : elapsed < 4500 ? 'PROCESSING' : 'DONE'
     task.doc.status = status
     task.result.status = status
+    tasks[docId] = task
+    writeDocTasks(tasks)
     return { id: task.doc.id, status }
   },
   async result(docId: string) {
-    const task = docs.get(docId)
+    const tasks = readDocTasks()
+    const task = tasks[docId]
     if (!task) throw new Error('任务不存在')
     await mockDocument.status(docId)
     return task.result
@@ -143,4 +165,3 @@ export const mockMatch = {
     }
   },
 }
-

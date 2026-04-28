@@ -4,11 +4,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getDocumentStatus } from '@/api/document'
 import { usePolling } from '@/composables/usePolling'
+import { useDocumentStore } from '@/stores/document'
 
 type DocStatus = 'UPLOADING' | 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'
 
 const route = useRoute()
 const router = useRouter()
+const docsStore = useDocumentStore()
 
 const docId = computed(() => String(route.params.docId || ''))
 const status = ref<DocStatus>('PENDING')
@@ -31,6 +33,8 @@ const fetchStatus = async () => {
     const s = String((resp as any).status) as DocStatus
     status.value = s
     loading.value = false
+    docsStore.hydrate()
+    docsStore.updateStatus(docId.value, s)
     if (s === 'DONE' || s === 'FAILED') poll.stop()
   } catch (e: any) {
     loading.value = false
@@ -83,11 +87,10 @@ const goResult = () => router.push(`${base.value}/doc/result/${encodeURIComponen
         <div v-else class="text-sm text-zinc-600">状态将自动刷新。</div>
 
         <div class="flex justify-end gap-2">
-          <el-button @click="router.push(`${base}/doc/upload`)">返回上传</el-button>
+          <el-button @click="router.push(`${base}/doc/list`)">返回文档中心</el-button>
           <el-button type="primary" :disabled="status !== 'DONE'" @click="goResult">查看结果</el-button>
         </div>
       </div>
     </el-card>
   </div>
 </template>
-

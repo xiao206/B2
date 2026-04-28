@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { uploadDocument } from '@/api/document'
 import type { DocType } from '@/types/document'
+import { useDocumentStore } from '@/stores/document'
 
 const route = useRoute()
 const router = useRouter()
+const docsStore = useDocumentStore()
 
 const isCompany = computed(() => route.path.startsWith('/company'))
 const docType = computed<DocType>(() => (isCompany.value ? 'JOB_DESC' : 'RESUME'))
@@ -33,6 +35,15 @@ const submit = async () => {
   loading.value = true
   try {
     const { docId } = await uploadDocument({ file: file.value, docType: docType.value })
+    docsStore.hydrate()
+    docsStore.addDoc({
+      id: docId,
+      fileName: file.value.name,
+      fileType: file.value.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'DOC',
+      docType: docType.value,
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+    })
     ElMessage.success('上传成功，已进入解析任务')
     const base = isCompany.value ? '/company' : '/person'
     await router.push(`${base}/doc/task/${encodeURIComponent(docId)}`)
@@ -73,7 +84,7 @@ const submit = async () => {
         <el-upload drag :auto-upload="false" :show-file-list="true" :before-upload="beforeUpload">
           <div class="py-8">
             <div class="text-sm font-semibold text-zinc-900">拖拽文件到此处，或点击选择</div>
-            <div class="mt-1 text-xs text-zinc-500">推荐开启 mock：VITE_USE_MOCK=true</div>
+            <div class="mt-1 text-xs text-zinc-500">无后端时默认走 mock；设置 VITE_USE_MOCK=false 可切到真实接口</div>
           </div>
         </el-upload>
 
@@ -84,4 +95,3 @@ const submit = async () => {
     </el-card>
   </div>
 </template>
-

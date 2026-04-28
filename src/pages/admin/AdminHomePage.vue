@@ -20,9 +20,20 @@ const router = useRouter()
         <div class="text-sm font-semibold">用户管理</div>
         <div class="mt-1 text-sm text-zinc-600">查询、分页、禁用/重置（占位）。</div>
       </el-card>
+      <el-card shadow="never" class="cursor-pointer" @click="router.push('/admin/docs')">
+        <div class="text-sm font-semibold">文档库</div>
+        <div class="mt-1 text-sm text-zinc-600">查看上传记录与解析结果入口。</div>
+      </el-card>
       <el-card shadow="never" class="cursor-pointer" @click="router.push('/admin/monitor')">
         <div class="text-sm font-semibold">运营监控</div>
         <div class="mt-1 text-sm text-zinc-600">服务状态、解析/匹配指标、模型模式。</div>
+      </el-card>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <el-card shadow="never" class="cursor-pointer" @click="router.push('/admin/data')">
+        <div class="text-sm font-semibold">数据维护</div>
+        <div class="mt-1 text-sm text-zinc-600">技能库、同义词维护（本地持久化）。</div>
       </el-card>
       <el-card shadow="never" class="cursor-pointer" @click="router.push('/admin/audit')">
         <div class="text-sm font-semibold">日志审计</div>
@@ -31,4 +42,3 @@ const router = useRouter()
     </div>
   </div>
 </template>
-

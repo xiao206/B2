@@ -10,6 +10,8 @@ const router = useRouter()
 const menuItems = [
   { index: '/admin', label: '概览' },
   { index: '/admin/users', label: '用户管理' },
+  { index: '/admin/docs', label: '文档库' },
+  { index: '/admin/data', label: '数据维护' },
   { index: '/admin/monitor', label: '运营监控' },
   { index: '/admin/audit', label: '日志审计' },
 ]
@@ -58,4 +60,3 @@ const logout = () => {
     </el-container>
   </el-container>
 </template>
-

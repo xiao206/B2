@@ -42,7 +42,7 @@ const submit = async () => {
   <div class="space-y-4">
     <div>
       <div class="text-lg font-semibold text-zinc-900">登录</div>
-      <div class="mt-1 text-sm text-zinc-500">建议开发阶段开启 mock：VITE_USE_MOCK=true</div>
+      <div class="mt-1 text-sm text-zinc-500">无后端时默认走 mock；设置 VITE_USE_MOCK=false 可切到真实接口</div>
     </div>
 
     <el-form label-position="top" @submit.prevent="submit">
@@ -68,4 +68,3 @@ const submit = async () => {
     </div>
   </div>
 </template>
-

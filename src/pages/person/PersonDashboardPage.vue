@@ -12,7 +12,7 @@ const router = useRouter()
           <div class="text-base font-semibold">个人工作台</div>
           <div class="mt-1 text-sm text-zinc-600">从上传简历开始，完成解析、图谱与推荐查看。</div>
         </div>
-        <el-button type="primary" @click="router.push('/person/doc/upload')">上传简历</el-button>
+        <el-button type="primary" @click="router.push('/person/doc/list')">进入文档中心</el-button>
       </div>
     </el-card>
 
@@ -25,11 +25,10 @@ const router = useRouter()
         <div class="text-sm font-semibold">职位推荐</div>
         <div class="mt-1 text-sm text-zinc-600">查看 Top-N 推荐与可解释匹配详情。</div>
       </el-card>
-      <el-card shadow="never" class="cursor-pointer" @click="router.push('/person/doc/upload')">
-        <div class="text-sm font-semibold">解析任务</div>
-        <div class="mt-1 text-sm text-zinc-600">上传后会自动跳转任务跟踪页。</div>
+      <el-card shadow="never" class="cursor-pointer" @click="router.push('/person/doc/list')">
+        <div class="text-sm font-semibold">文档中心</div>
+        <div class="mt-1 text-sm text-zinc-600">查看上传记录、解析任务与结果入口。</div>
       </el-card>
     </div>
   </div>
 </template>
-
