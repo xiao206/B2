@@ -15,17 +15,33 @@ const docType = computed<DocType>(() => (isCompany.value ? 'JOB_DESC' : 'RESUME'
 const title = computed(() => (isCompany.value ? 'JD 上传' : '简历上传'))
 
 const file = ref<File | null>(null)
+const fileList = ref<any[]>([])
 const authorized = ref(false)
 const loading = ref(false)
 
-const beforeUpload = (raw: File) => {
+const validateFile = (raw: File) => {
   const okType = /\.(pdf|doc|docx)$/i.test(raw.name)
   const okSize = raw.size <= 50 * 1024 * 1024
   if (!okType) ElMessage.warning('仅支持 PDF/DOC/DOCX')
   if (!okSize) ElMessage.warning('文件大小需 ≤ 50MB')
-  if (!okType || !okSize) return false
+  return okType && okSize
+}
+
+const onChange = (uploadFile: any, uploadFiles: any[]) => {
+  const raw = uploadFile?.raw as File | undefined
+  if (!raw) return
+  if (!validateFile(raw)) {
+    file.value = null
+    fileList.value = []
+    return
+  }
   file.value = raw
-  return false
+  fileList.value = uploadFiles.slice(-1)
+}
+
+const onRemove = () => {
+  file.value = null
+  fileList.value = []
 }
 
 const submit = async () => {
@@ -81,7 +97,17 @@ const submit = async () => {
           本人/本单位已获得该文档相关主体授权，并同意隐私条款与数据使用说明
         </el-checkbox>
 
-        <el-upload drag :auto-upload="false" :show-file-list="true" :before-upload="beforeUpload">
+        <el-upload
+          drag
+          :auto-upload="false"
+          :show-file-list="true"
+          :multiple="false"
+          :limit="1"
+          accept=".pdf,.doc,.docx"
+          :file-list="fileList"
+          :on-change="onChange"
+          :on-remove="onRemove"
+        >
           <div class="py-8">
             <div class="text-sm font-semibold text-zinc-900">拖拽文件到此处，或点击选择</div>
             <div class="mt-1 text-xs text-zinc-500">无后端时默认走 mock；设置 VITE_USE_MOCK=false 可切到真实接口</div>
