@@ -14,6 +14,7 @@ const menuItems = [
   { index: '/admin/users', label: '用户管理' },
   { index: '/admin/docs', label: '文档库' },
   { index: '/admin/data', label: '数据维护' },
+  { index: '/admin/match', label: '匹配记录' },
   { index: '/admin/monitor', label: '运营监控' },
   { index: '/admin/audit', label: '日志审计' },
 ]

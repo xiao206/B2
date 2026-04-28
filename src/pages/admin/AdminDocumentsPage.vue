@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useDocumentStore } from '@/stores/document'
 import { getParseResult } from '@/api/document'
 import type { ParseResultVO } from '@/types/document'
@@ -14,7 +14,17 @@ onMounted(() => {
   docsStore.hydrate()
 })
 
-const list = computed(() => docsStore.docs)
+const query = reactive<{ fileName: string; docType: string; status: string }>({ fileName: '', docType: '', status: '' })
+
+const list = computed(() => {
+  const f = query.fileName.trim()
+  return docsStore.docs.filter((d) => {
+    if (f && !d.fileName.includes(f)) return false
+    if (query.docType && d.docType !== (query.docType as any)) return false
+    if (query.status && d.status !== (query.status as any)) return false
+    return true
+  })
+})
 
 const openResult = async (docId: string) => {
   drawerOpen.value = true
@@ -35,6 +45,16 @@ const openResult = async (docId: string) => {
     loading.value = false
   }
 }
+
+const removeDoc = async (docId: string) => {
+  await ElMessageBox.confirm('确认删除该文档记录？', '提示', { type: 'warning' })
+  docsStore.hydrate()
+  docsStore.removeDoc(docId)
+  if (current.value?.docId === docId) {
+    current.value = null
+    drawerOpen.value = false
+  }
+}
 </script>
 
 <template>
@@ -49,19 +69,40 @@ const openResult = async (docId: string) => {
     </el-card>
 
     <el-card shadow="never">
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <el-input v-model="query.fileName" placeholder="文件名" clearable />
+        <el-select v-model="query.docType" placeholder="类型" clearable>
+          <el-option label="简历" value="RESUME" />
+          <el-option label="JD" value="JOB_DESC" />
+        </el-select>
+        <el-select v-model="query.status" placeholder="状态" clearable>
+          <el-option label="UPLOADING" value="UPLOADING" />
+          <el-option label="PENDING" value="PENDING" />
+          <el-option label="PROCESSING" value="PROCESSING" />
+          <el-option label="DONE" value="DONE" />
+          <el-option label="FAILED" value="FAILED" />
+        </el-select>
+        <div class="flex items-center justify-end">
+          <el-button v-permission="'ADMIN_DOCS_VIEW'" type="primary">导出（占位）</el-button>
+        </div>
+      </div>
+
+      <div class="mt-4">
       <el-table :data="list">
         <el-table-column prop="id" label="DocId" width="220" />
         <el-table-column prop="docType" label="类型" width="120" />
         <el-table-column prop="fileName" label="文件名" min-width="260" />
         <el-table-column prop="status" label="状态" width="140" />
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button v-permission="'ADMIN_DOCS_VIEW'" link type="primary" :disabled="row.status !== 'DONE'" @click="openResult(row.id)">
               查看结果
             </el-button>
+            <el-button v-permission="'ADMIN_DOCS_VIEW'" link type="danger" @click="removeDoc(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
+      </div>
     </el-card>
 
     <el-drawer v-model="drawerOpen" title="解析结果" size="50%">
@@ -79,4 +120,3 @@ const openResult = async (docId: string) => {
     </el-drawer>
   </div>
 </template>
-

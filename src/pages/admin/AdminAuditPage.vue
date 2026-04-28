@@ -1,19 +1,27 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 
-type LogRow = { id: string; user: string; module: string; result: 'OK' | 'FAIL'; time: string }
+type LogRow = { id: string; user: string; module: string; result: 'OK' | 'FAIL'; time: string; detail: Record<string, unknown> }
 
 const query = reactive({ user: '', module: '' })
 const rows = ref<LogRow[]>([
-  { id: 'log-001', user: 'demo', module: 'document.upload', result: 'OK', time: '2026-04-28 10:12:33' },
-  { id: 'log-002', user: 'admin', module: 'admin.users', result: 'OK', time: '2026-04-28 10:18:07' },
-  { id: 'log-003', user: 'hr-demo', module: 'match.recommend', result: 'FAIL', time: '2026-04-28 10:22:41' },
+  { id: 'log-001', user: 'demo', module: 'document.upload', result: 'OK', time: '2026-04-28 10:12:33', detail: { docType: 'RESUME' } },
+  { id: 'log-002', user: 'admin', module: 'admin.users', result: 'OK', time: '2026-04-28 10:18:07', detail: { action: 'upsert' } },
+  { id: 'log-003', user: 'hr-demo', module: 'match.recommend', result: 'FAIL', time: '2026-04-28 10:22:41', detail: { reason: 'timeout' } },
 ])
 
-const filtered = () => {
+const list = computed(() => {
   const u = query.user.trim()
   const m = query.module.trim()
   return rows.value.filter((r) => (!u || r.user.includes(u)) && (!m || r.module.includes(m)))
+})
+
+const drawerOpen = ref(false)
+const current = ref<LogRow | null>(null)
+
+const openDetail = (row: LogRow) => {
+  current.value = row
+  drawerOpen.value = true
 }
 </script>
 
@@ -39,7 +47,7 @@ const filtered = () => {
     </el-card>
 
     <el-card shadow="never">
-      <el-table :data="filtered()">
+      <el-table :data="list">
         <el-table-column prop="time" label="时间" width="180" />
         <el-table-column prop="user" label="用户" width="160" />
         <el-table-column prop="module" label="模块" min-width="240" />
@@ -49,12 +57,27 @@ const filtered = () => {
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
-          <template #default>
-            <el-button v-permission="'ADMIN_AUDIT_VIEW'" link type="primary">详情</el-button>
+          <template #default="{ row }">
+            <el-button v-permission="'ADMIN_AUDIT_VIEW'" link type="primary" @click="openDetail(row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
   </div>
-</template>
 
+  <el-drawer v-model="drawerOpen" title="审计详情" size="520px">
+    <div v-if="!current" class="text-sm text-zinc-600">暂无</div>
+    <div v-else class="space-y-3">
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="时间">{{ current.time }}</el-descriptions-item>
+        <el-descriptions-item label="用户">{{ current.user }}</el-descriptions-item>
+        <el-descriptions-item label="模块">{{ current.module }}</el-descriptions-item>
+        <el-descriptions-item label="结果">{{ current.result }}</el-descriptions-item>
+        <el-descriptions-item label="ID">{{ current.id }}</el-descriptions-item>
+      </el-descriptions>
+      <pre class="max-h-[420px] overflow-auto rounded-lg bg-zinc-950 p-4 text-xs text-zinc-100">{{
+        JSON.stringify(current.detail, null, 2)
+      }}</pre>
+    </div>
+  </el-drawer>
+</template>

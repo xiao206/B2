@@ -35,6 +35,10 @@ const router = useRouter()
         <div class="text-sm font-semibold">数据维护</div>
         <div class="mt-1 text-sm text-zinc-600">技能库、同义词维护（本地持久化）。</div>
       </el-card>
+      <el-card shadow="never" class="cursor-pointer" @click="router.push('/admin/match')">
+        <div class="text-sm font-semibold">匹配记录</div>
+        <div class="mt-1 text-sm text-zinc-600">查看匹配历史与用户反馈（演示）。</div>
+      </el-card>
       <el-card shadow="never" class="cursor-pointer" @click="router.push('/admin/audit')">
         <div class="text-sm font-semibold">日志审计</div>
         <div class="mt-1 text-sm text-zinc-600">按用户/时间/模块筛选与详情抽屉。</div>

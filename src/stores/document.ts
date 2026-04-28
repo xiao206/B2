@@ -53,5 +53,16 @@ export const useDocumentStore = defineStore('document', {
       this.results[docId] = result
       this.persist()
     },
+    clearResult(docId: string) {
+      if (docId in this.results) {
+        delete this.results[docId]
+        this.persist()
+      }
+    },
+    removeDoc(docId: string) {
+      this.docs = this.docs.filter((d) => d.id !== docId)
+      this.clearResult(docId)
+      this.persist()
+    },
   },
 })

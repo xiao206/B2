@@ -17,6 +17,7 @@ import AdminHomePage from '@/pages/admin/AdminHomePage.vue'
 import AdminUsersPage from '@/pages/admin/AdminUsersPage.vue'
 import AdminDocumentsPage from '@/pages/admin/AdminDocumentsPage.vue'
 import AdminDataPage from '@/pages/admin/AdminDataPage.vue'
+import AdminMatchPage from '@/pages/admin/AdminMatchPage.vue'
 import AdminMonitorPage from '@/pages/admin/AdminMonitorPage.vue'
 import AdminAuditPage from '@/pages/admin/AdminAuditPage.vue'
 import ForbiddenPage from '@/pages/system/ForbiddenPage.vue'
@@ -85,6 +86,7 @@ export const routes: RouteRecordRaw[] = [
       { path: 'users', name: 'AdminUsers', component: AdminUsersPage, meta: { userTypes: ['ADMIN'], title: '用户管理' } },
       { path: 'docs', name: 'AdminDocs', component: AdminDocumentsPage, meta: { userTypes: ['ADMIN'], title: '文档库' } },
       { path: 'data', name: 'AdminData', component: AdminDataPage, meta: { userTypes: ['ADMIN'], title: '数据维护' } },
+      { path: 'match', name: 'AdminMatch', component: AdminMatchPage, meta: { userTypes: ['ADMIN'], title: '匹配记录' } },
       { path: 'monitor', name: 'AdminMonitor', component: AdminMonitorPage, meta: { userTypes: ['ADMIN'], title: '运营监控' } },
       { path: 'audit', name: 'AdminAudit', component: AdminAuditPage, meta: { userTypes: ['ADMIN'], title: '日志审计' } },
     ],

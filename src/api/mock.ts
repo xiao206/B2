@@ -35,7 +35,7 @@ export const mockAuth = {
   async login(payload: { account: string; password: string; userType: UserType }) {
     const permissions =
       payload.userType === 'ADMIN'
-        ? ['ADMIN_USERS_VIEW', 'ADMIN_DOCS_VIEW', 'ADMIN_DATA_VIEW', 'ADMIN_MONITOR_VIEW', 'ADMIN_AUDIT_VIEW']
+        ? ['ADMIN_USERS_VIEW', 'ADMIN_DOCS_VIEW', 'ADMIN_DATA_VIEW', 'ADMIN_MATCH_VIEW', 'ADMIN_MONITOR_VIEW', 'ADMIN_AUDIT_VIEW']
         : []
     return {
       token: `mock-token-${payload.userType.toLowerCase()}`,
