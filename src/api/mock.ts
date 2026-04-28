@@ -108,11 +108,11 @@ export const mockGraph = {
         { id: 'proj-1', label: '图谱系统', type: 'Project' },
       ],
       edges: [
-        { id: genId('e'), source: personId, target: 'skill-vue', type: 'HAS_SKILL' },
-        { id: genId('e'), source: personId, target: 'skill-ts', type: 'HAS_SKILL' },
-        { id: genId('e'), source: personId, target: 'skill-spring', type: 'HAS_SKILL' },
-        { id: genId('e'), source: 'proj-1', target: 'skill-vue', type: 'APPLIED_IN' },
-        { id: genId('e'), source: 'proj-1', target: 'skill-ts', type: 'APPLIED_IN' },
+        { id: genId('e'), source: personId, target: 'skill-vue', relation: 'HAS_SKILL' },
+        { id: genId('e'), source: personId, target: 'skill-ts', relation: 'HAS_SKILL' },
+        { id: genId('e'), source: personId, target: 'skill-spring', relation: 'HAS_SKILL' },
+        { id: genId('e'), source: 'proj-1', target: 'skill-vue', relation: 'APPLIED_IN' },
+        { id: genId('e'), source: 'proj-1', target: 'skill-ts', relation: 'APPLIED_IN' },
       ],
     }
   },
@@ -125,9 +125,9 @@ export const mockGraph = {
         { id: 'skill-g6', label: 'AntV G6', type: 'Skill' },
       ],
       edges: [
-        { id: genId('e'), source: jobId, target: 'skill-vue', type: 'REQUIRES_SKILL' },
-        { id: genId('e'), source: jobId, target: 'skill-ts', type: 'REQUIRES_SKILL' },
-        { id: genId('e'), source: jobId, target: 'skill-g6', type: 'REQUIRES_SKILL' },
+        { id: genId('e'), source: jobId, target: 'skill-vue', relation: 'REQUIRES_SKILL' },
+        { id: genId('e'), source: jobId, target: 'skill-ts', relation: 'REQUIRES_SKILL' },
+        { id: genId('e'), source: jobId, target: 'skill-g6', relation: 'REQUIRES_SKILL' },
       ],
     }
   },

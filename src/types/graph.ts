@@ -9,7 +9,7 @@ export interface GraphEdge {
   id: string
   source: string
   target: string
-  type: 'HAS_SKILL' | 'REQUIRES_SKILL' | 'DEPENDS_ON' | 'BELONGS_TO' | 'APPLIED_IN' | 'PUBLISHES'
+  relation: 'HAS_SKILL' | 'REQUIRES_SKILL' | 'DEPENDS_ON' | 'BELONGS_TO' | 'APPLIED_IN' | 'PUBLISHES'
   props?: Record<string, unknown>
 }
 
@@ -17,4 +17,3 @@ export interface GraphData {
   nodes: GraphNode[]
   edges: GraphEdge[]
 }
-

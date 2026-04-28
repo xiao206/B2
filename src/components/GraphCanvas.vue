@@ -11,6 +11,7 @@ const props = defineProps<{
 const el = ref<HTMLDivElement | null>(null)
 let graph: any = null
 let ro: ResizeObserver | null = null
+let rafId: number | null = null
 
 const layoutCfg = computed(() => {
   if (props.layout === 'radial') return { type: 'radial', unitRadius: 80, preventOverlap: true }
@@ -18,12 +19,14 @@ const layoutCfg = computed(() => {
   return { type: 'force', preventOverlap: true, linkDistance: 140 }
 })
 
-const renderGraph = () => {
+const updateSize = () => {
   if (!el.value) return
   if (!graph) return
   const rect = el.value.getBoundingClientRect()
-  graph.setSize([Math.floor(rect.width), Math.floor(rect.height)])
-  graph.render()
+  const w = Math.max(1, Math.floor(rect.width))
+  const h = Math.max(1, Math.floor(rect.height))
+  if (typeof graph.resize === 'function') graph.resize(w, h)
+  else graph.setSize([w, h])
 }
 
 const ensureGraph = () => {
@@ -33,11 +36,13 @@ const ensureGraph = () => {
 
   graph = new Graph({
     container: el.value,
-    width: Math.floor(rect.width),
-    height: Math.floor(rect.height),
+    animation: false,
+    width: Math.max(1, Math.floor(rect.width)),
+    height: Math.max(1, Math.floor(rect.height)),
     data: props.data as any,
     layout: layoutCfg.value as any,
     node: {
+      type: 'circle',
       style: (d: any) => {
         const type = d?.type as string
         const fill =
@@ -67,16 +72,28 @@ const ensureGraph = () => {
         endArrow: true,
       }),
     },
-    behaviors: ['drag-canvas', 'zoom-canvas', 'drag-element'],
+    behaviors: [
+      'drag-canvas',
+      'zoom-canvas',
+      {
+        type: 'drag-element',
+        key: 'drag-element',
+        enableAnimation: false,
+        shadow: false,
+      },
+    ],
   })
 
-  renderGraph()
+  graph.render()
 }
 
 onMounted(() => {
   ensureGraph()
   if (el.value) {
-    ro = new ResizeObserver(() => renderGraph())
+    ro = new ResizeObserver(() => {
+      if (rafId) window.cancelAnimationFrame(rafId)
+      rafId = window.requestAnimationFrame(() => updateSize())
+    })
     ro.observe(el.value)
   }
 })
@@ -86,7 +103,8 @@ watch(
   (d) => {
     if (!graph) ensureGraph()
     graph.setData(d as any)
-    renderGraph()
+    updateSize()
+    graph.render()
   },
   { deep: true },
 )
@@ -96,13 +114,16 @@ watch(
   () => {
     if (!graph) return
     graph.setLayout(layoutCfg.value as any)
-    renderGraph()
+    updateSize()
+    graph.render()
   },
 )
 
 onBeforeUnmount(() => {
   if (ro && el.value) ro.unobserve(el.value)
   ro = null
+  if (rafId) window.cancelAnimationFrame(rafId)
+  rafId = null
   if (graph) graph.destroy()
   graph = null
 })
@@ -111,4 +132,3 @@ onBeforeUnmount(() => {
 <template>
   <div ref="el" class="h-[560px] w-full overflow-hidden rounded-xl border border-zinc-200 bg-white" />
 </template>
-
