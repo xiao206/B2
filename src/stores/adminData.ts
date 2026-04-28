@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { getDataStorage } from '@/utils/storage'
 
 export interface SkillRow {
   id: string
@@ -26,7 +27,8 @@ export const useAdminDataStore = defineStore('adminData', {
   }),
   actions: {
     hydrate() {
-      const raw = sessionStorage.getItem(STORAGE_KEY)
+      const storage = getDataStorage()
+      const raw = storage.getItem(STORAGE_KEY)
       if (!raw) {
         this.skills = [
           { id: 'sk-001', name: 'Vue 3', category: '前端' },
@@ -45,11 +47,12 @@ export const useAdminDataStore = defineStore('adminData', {
         this.skills = Array.isArray(data.skills) ? (data.skills as SkillRow[]) : []
         this.synonyms = Array.isArray(data.synonyms) ? (data.synonyms as SynonymRow[]) : []
       } catch {
-        sessionStorage.removeItem(STORAGE_KEY)
+        storage.removeItem(STORAGE_KEY)
       }
     },
     persist() {
-      sessionStorage.setItem(
+      const storage = getDataStorage()
+      storage.setItem(
         STORAGE_KEY,
         JSON.stringify({
           skills: this.skills,
@@ -79,4 +82,3 @@ export const useAdminDataStore = defineStore('adminData', {
     },
   },
 })
-

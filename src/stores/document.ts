@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { DocFileVO, DocStatus, ParseResultVO } from '@/types/document'
+import { getDataStorage } from '@/utils/storage'
 
 export interface DocumentState {
   docs: DocFileVO[]
@@ -15,18 +16,20 @@ export const useDocumentStore = defineStore('document', {
   }),
   actions: {
     hydrate() {
-      const raw = sessionStorage.getItem(STORAGE_KEY)
+      const storage = getDataStorage()
+      const raw = storage.getItem(STORAGE_KEY)
       if (!raw) return
       try {
         const data = JSON.parse(raw) as Partial<DocumentState>
         this.docs = Array.isArray(data.docs) ? (data.docs as DocFileVO[]) : []
         this.results = data.results && typeof data.results === 'object' ? (data.results as Record<string, ParseResultVO>) : {}
       } catch {
-        sessionStorage.removeItem(STORAGE_KEY)
+        storage.removeItem(STORAGE_KEY)
       }
     },
     persist() {
-      sessionStorage.setItem(
+      const storage = getDataStorage()
+      storage.setItem(
         STORAGE_KEY,
         JSON.stringify({
           docs: this.docs,
@@ -52,4 +55,3 @@ export const useDocumentStore = defineStore('document', {
     },
   },
 })
-

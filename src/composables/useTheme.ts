@@ -16,11 +16,16 @@ export function useTheme() {
   const applyTheme = (t: Theme) => {
     document.documentElement.classList.remove('light', 'dark')
     document.documentElement.classList.add(t)
-    localStorage.setItem('theme', t)
+    try {
+      localStorage.setItem('theme', t)
+    } catch {
+      void 0
+    }
   }
 
   const toggleTheme = () => {
     theme.value = theme.value === 'light' ? 'dark' : 'light'
+    applyTheme(theme.value)
   }
 
   onMounted(() => {

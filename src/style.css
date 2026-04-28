@@ -13,5 +13,34 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --app-bg: #f5f7fa;
+  --app-panel: #ffffff;
+  --app-border: #e4e4e7;
+  --app-text: #18181b;
+  --app-subtext: #52525b;
+  --app-accent: #1677ff;
+  --app-danger: #ff4d4f;
 }
 
+.dark {
+  color-scheme: dark;
+  --app-bg: #09090b;
+  --app-panel: #09090b;
+  --app-border: #27272a;
+  --app-text: #fafafa;
+  --app-subtext: #a1a1aa;
+  --app-accent: #4f8cff;
+  --app-danger: #ff6b6b;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--app-text);
+}

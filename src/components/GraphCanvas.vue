@@ -8,6 +8,11 @@ const props = defineProps<{
   layout: 'force' | 'radial' | 'dagre'
 }>()
 
+const emit = defineEmits<{
+  (e: 'nodeClick', payload: { id: string }): void
+  (e: 'canvasClick'): void
+}>()
+
 const el = ref<HTMLDivElement | null>(null)
 let graph: any = null
 let ro: ResizeObserver | null = null
@@ -55,7 +60,7 @@ const ensureGraph = () => {
                 : type === 'Project'
                   ? '#722ed1'
                   : '#8c8c8c'
-        return {
+        const base = {
           fill,
           stroke: '#ffffff',
           lineWidth: 2,
@@ -64,13 +69,16 @@ const ensureGraph = () => {
           labelPlacement: 'bottom',
           size: type === 'Job' ? 40 : 32,
         }
+        const extra = d?.style && typeof d.style === 'object' ? d.style : {}
+        return { ...base, ...extra }
       },
     },
     edge: {
-      style: () => ({
-        stroke: 'rgba(24,24,27,.35)',
-        endArrow: true,
-      }),
+      style: (d: any) => {
+        const base = { stroke: 'rgba(24,24,27,.35)', endArrow: true }
+        const extra = d?.style && typeof d.style === 'object' ? d.style : {}
+        return { ...base, ...extra }
+      },
     },
     behaviors: [
       'drag-canvas',
@@ -83,6 +91,13 @@ const ensureGraph = () => {
       },
     ],
   })
+
+  graph.on('node:click', (evt: any) => {
+    const id = evt?.data?.data?.id ?? evt?.itemId ?? evt?.item?.id ?? evt?.target?.id
+    if (typeof id === 'string') emit('nodeClick', { id })
+  })
+
+  graph.on('canvas:click', () => emit('canvasClick'))
 
   graph.render()
 }
@@ -127,8 +142,17 @@ onBeforeUnmount(() => {
   if (graph) graph.destroy()
   graph = null
 })
+
+const focusNode = (id: string) => {
+  if (!graph) return
+  const anyGraph = graph as any
+  if (typeof anyGraph.focusElement === 'function') anyGraph.focusElement(id)
+  else if (typeof anyGraph.centerElement === 'function') anyGraph.centerElement(id)
+}
+
+defineExpose({ focusNode })
 </script>
 
 <template>
-  <div ref="el" class="h-[560px] w-full overflow-hidden rounded-xl border border-zinc-200 bg-white" />
+  <div ref="el" class="h-[560px] w-full overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950" />
 </template>

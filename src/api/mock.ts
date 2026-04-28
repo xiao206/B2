@@ -2,6 +2,7 @@ import type { UserType } from '@/stores/auth'
 import type { DocStatus, DocType, DocFileVO, ParseResultVO } from '@/types/document'
 import type { GraphData } from '@/types/graph'
 import type { MatchDetailVO, MatchListItem } from '@/types/match'
+import { getDataStorage } from '@/utils/storage'
 
 const genId = (prefix: string) => `${prefix}-${Math.random().toString(16).slice(2, 10)}`
 
@@ -14,19 +15,20 @@ type DocTask = {
 const DOC_TASKS_KEY = 'aimap.mock.docTasks'
 
 const readDocTasks = (): Record<string, DocTask> => {
-  const raw = sessionStorage.getItem(DOC_TASKS_KEY)
+  const storage = getDataStorage()
+  const raw = storage.getItem(DOC_TASKS_KEY)
   if (!raw) return {}
   try {
     const v = JSON.parse(raw) as Record<string, DocTask>
     return v && typeof v === 'object' ? v : {}
   } catch {
-    sessionStorage.removeItem(DOC_TASKS_KEY)
+    storage.removeItem(DOC_TASKS_KEY)
     return {}
   }
 }
 
 const writeDocTasks = (tasks: Record<string, DocTask>) => {
-  sessionStorage.setItem(DOC_TASKS_KEY, JSON.stringify(tasks))
+  getDataStorage().setItem(DOC_TASKS_KEY, JSON.stringify(tasks))
 }
 
 export const mockAuth = {
@@ -130,6 +132,48 @@ export const mockGraph = {
         { id: genId('e'), source: jobId, target: 'skill-g6', relation: 'REQUIRES_SKILL' },
       ],
     }
+  },
+  async expand(payload: { subject: 'person' | 'job'; nodeId: string }): Promise<GraphData> {
+    const nodeId = payload.nodeId
+    const addSkill = (name: string) => ({ id: `skill-${name.toLowerCase().replace(/\s+/g, '-')}`, label: name, type: 'Skill' as const })
+
+    if (nodeId.startsWith('skill-')) {
+      const related = [
+        addSkill('ECharts'),
+        addSkill('Pinia'),
+        addSkill('Axios'),
+      ]
+      const edges = related.map((n) => ({
+        id: genId('e'),
+        source: nodeId,
+        target: n.id,
+        relation: 'DEPENDS_ON' as const,
+      }))
+      return { nodes: related, edges }
+    }
+
+    if (payload.subject === 'person') {
+      const nodes = [
+        { id: 'cat-frontend', label: '前端', type: 'Category' as const },
+        { id: 'cat-backend', label: '后端', type: 'Category' as const },
+      ]
+      const edges = [
+        { id: genId('e'), source: 'skill-vue', target: 'cat-frontend', relation: 'BELONGS_TO' as const },
+        { id: genId('e'), source: 'skill-ts', target: 'cat-frontend', relation: 'BELONGS_TO' as const },
+        { id: genId('e'), source: 'skill-spring', target: 'cat-backend', relation: 'BELONGS_TO' as const },
+      ]
+      return { nodes, edges }
+    }
+
+    const nodes = [
+      { id: 'cat-graph', label: '图谱能力', type: 'Category' as const },
+      { id: 'skill-webgl', label: 'WebGL', type: 'Skill' as const },
+    ]
+    const edges = [
+      { id: genId('e'), source: 'skill-g6', target: 'cat-graph', relation: 'BELONGS_TO' as const },
+      { id: genId('e'), source: 'skill-g6', target: 'skill-webgl', relation: 'DEPENDS_ON' as const },
+    ]
+    return { nodes, edges }
   },
 }
 

@@ -12,3 +12,8 @@ export async function getJobGraph(jobId: string): Promise<GraphData> {
   if (isMockEnabled()) return mockGraph.jobGraph(jobId)
   return http.get(`/graph/job/${encodeURIComponent(jobId)}`)
 }
+
+export async function expandGraphNode(payload: { subject: 'person' | 'job'; nodeId: string }): Promise<GraphData> {
+  if (isMockEnabled()) return mockGraph.expand(payload)
+  return http.post('/graph/expand', payload)
+}
