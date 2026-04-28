@@ -180,20 +180,21 @@ export const mockGraph = {
 export const mockMatch = {
   async recommendJobs(): Promise<MatchListItem[]> {
     return [
-      { recordId: genId('rec'), title: '前端开发（Vue3）', org: '某科技公司', score: 86 },
-      { recordId: genId('rec'), title: '全栈开发（Java+Vue）', org: '某平台团队', score: 79 },
+      { recordId: 'rec-job-001', title: '前端开发（Vue3）', org: '某科技公司', score: 86 },
+      { recordId: 'rec-job-002', title: '全栈开发（Java+Vue）', org: '某平台团队', score: 79 },
     ]
   },
   async recommendCandidates(): Promise<MatchListItem[]> {
     return [
-      { recordId: genId('rec'), title: '候选人：张三', org: '3 年经验', score: 84 },
-      { recordId: genId('rec'), title: '候选人：李四', org: '5 年经验', score: 77 },
+      { recordId: 'rec-cand-001', title: '候选人：张三', org: '3 年经验', score: 84 },
+      { recordId: 'rec-cand-002', title: '候选人：李四', org: '5 年经验', score: 77 },
     ]
   },
   async detail(recordId: string): Promise<MatchDetailVO> {
+    const isJob = recordId.startsWith('rec-job-')
     return {
       recordId,
-      score: 86,
+      score: isJob ? (recordId.endsWith('002') ? 79 : 86) : recordId.endsWith('002') ? 77 : 84,
       scoreBreakdown: {
         skillCoverage: 42,
         levelMatch: 20,
@@ -205,7 +206,19 @@ export const mockMatch = {
         { name: 'TypeScript', requiredLevel: 3, personLevel: 2 },
       ],
       missingSkills: [{ name: 'AntV G6', requiredLevel: 2, gap: 2 }],
-      suggestions: ['补齐图谱可视化能力（G6 基础与交互），优先掌握布局与事件系统', '完善工程化规范：路由守卫、错误兜底与性能分包'],
+      rationales: [
+        '技能覆盖率较高：核心技能（Vue3/TS）匹配，但可视化图谱能力存在缺口。',
+        '图谱推理命中：项目经历与技能节点存在直接关联边，提升可解释性得分。',
+      ],
+      evidences: [
+        { type: 'TEXT', field: 'skills', snippet: '熟悉 Vue3/TS、Spring Boot、SQL...', weight: 0.35 },
+        { type: 'GRAPH', field: 'HAS_SKILL', snippet: 'Person -> Vue 3 / TypeScript', weight: 0.25 },
+        { type: 'VECTOR', field: 'embedding', snippet: '语义相似度（文本向量）', weight: 0.4 },
+      ],
+      suggestions: [
+        '补齐图谱可视化能力（G6 基础与交互），优先掌握布局与事件系统',
+        '完善工程化规范：路由守卫、错误兜底与性能分包',
+      ],
     }
   },
 }

@@ -4,14 +4,42 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { recommendCandidates, recommendJobs } from '@/api/match'
 import type { MatchListItem } from '@/types/match'
+import { useMatchStore } from '@/stores/match'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
+const matchStore = useMatchStore()
+const auth = useAuthStore()
 
 const isCompany = computed(() => route.path.startsWith('/company'))
 const title = computed(() => (isCompany.value ? '候选人推荐' : '职位推荐'))
 const list = ref<MatchListItem[]>([])
 const loading = ref(true)
+const tab = ref<'recommend' | 'favorite' | 'history'>('recommend')
+
+const userKey = computed(() => `${auth.userType ?? 'ANON'}:${auth.userId || 'anon'}`)
+const favoriteSet = computed(() => matchStore.favoriteSet(userKey.value))
+const historyList = computed(() => matchStore.historyByUser(userKey.value).filter((h) => (isCompany.value ? h.side === 'COMPANY' : h.side === 'PERSON')))
+
+const favoriteList = computed(() => {
+  const ids = favoriteSet.value
+  const byId = new Map(list.value.map((x) => [x.recordId, x]))
+  const stored = matchStore.historyByUser(userKey.value).filter((h) => ids.has(h.recordId))
+  const merged = new Map<string, MatchListItem>()
+  for (const x of stored) merged.set(x.recordId, x)
+  for (const id of ids) {
+    const r = byId.get(id)
+    if (r) merged.set(id, r)
+  }
+  return Array.from(merged.values())
+})
+
+const fmt = (iso: string) => {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString()
+}
 
 const load = async () => {
   loading.value = true
@@ -25,10 +53,18 @@ const load = async () => {
 }
 
 onMounted(load)
+onMounted(() => {
+  matchStore.hydrate()
+})
 
-const openDetail = (recordId: string) => {
+const openDetail = (row: MatchListItem) => {
   const base = isCompany.value ? '/company' : '/person'
-  router.push(`${base}/match/detail/${encodeURIComponent(recordId)}`)
+  matchStore.addHistory(row, isCompany.value ? 'COMPANY' : 'PERSON')
+  router.push(`${base}/match/detail/${encodeURIComponent(row.recordId)}`)
+}
+
+const toggleFav = (recordId: string) => {
+  matchStore.toggleFavorite(recordId)
 }
 </script>
 
@@ -38,14 +74,24 @@ const openDetail = (recordId: string) => {
       <div class="flex items-start justify-between gap-4">
         <div>
           <div class="text-base font-semibold">{{ title }}</div>
-          <div class="mt-1 text-sm text-zinc-600">Top-N 推荐列表（演示数据），点击进入可解释详情。</div>
+          <div class="mt-1 text-sm text-zinc-600">支持收藏、历史与反馈记录（本地持久化）。</div>
         </div>
         <el-button :loading="loading" @click="load">刷新</el-button>
       </div>
     </el-card>
 
     <el-card shadow="never">
-      <el-table :data="list" v-loading="loading">
+      <el-tabs v-model="tab">
+        <el-tab-pane label="推荐" name="recommend" />
+        <el-tab-pane label="收藏" name="favorite" />
+        <el-tab-pane label="历史" name="history" />
+      </el-tabs>
+
+      <el-table
+        v-if="tab === 'recommend'"
+        :data="list"
+        v-loading="loading"
+      >
         <el-table-column prop="title" label="名称" min-width="240" />
         <el-table-column prop="org" label="组织/备注" min-width="180" />
         <el-table-column prop="score" label="匹配度" width="120">
@@ -53,13 +99,60 @@ const openDetail = (recordId: string) => {
             <el-tag type="success">{{ row.score }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link @click="openDetail(row.recordId)">查看</el-button>
+            <el-button type="primary" link @click="openDetail(row)">查看</el-button>
+            <el-button link :type="favoriteSet.has(row.recordId) ? 'warning' : 'info'" @click="toggleFav(row.recordId)">
+              {{ favoriteSet.has(row.recordId) ? '已收藏' : '收藏' }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-table
+        v-else-if="tab === 'favorite'"
+        :data="favoriteList"
+      >
+        <el-table-column prop="title" label="名称" min-width="240" />
+        <el-table-column prop="org" label="组织/备注" min-width="180" />
+        <el-table-column prop="score" label="匹配度" width="120">
+          <template #default="{ row }">
+            <el-tag type="success">{{ row.score }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="openDetail(row)">查看</el-button>
+            <el-button link type="danger" @click="toggleFav(row.recordId)">取消收藏</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-table
+        v-else
+        :data="historyList"
+      >
+        <el-table-column prop="title" label="名称" min-width="240" />
+        <el-table-column prop="org" label="组织/备注" min-width="180" />
+        <el-table-column prop="score" label="匹配度" width="120">
+          <template #default="{ row }">
+            <el-tag type="success">{{ row.score }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="viewedAt" label="最近查看" width="200">
+          <template #default="{ row }">
+            <span class="text-xs text-zinc-600">{{ fmt(row.viewedAt) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="openDetail(row)">查看</el-button>
+            <el-button link :type="favoriteSet.has(row.recordId) ? 'warning' : 'info'" @click="toggleFav(row.recordId)">
+              {{ favoriteSet.has(row.recordId) ? '已收藏' : '收藏' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
   </div>
 </template>
-

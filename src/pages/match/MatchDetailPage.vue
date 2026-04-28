@@ -1,17 +1,23 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import RadarChart from '@/components/RadarChart.vue'
 import { getMatchDetail } from '@/api/match'
 import type { MatchDetailVO } from '@/types/match'
+import { useMatchStore } from '@/stores/match'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
+const matchStore = useMatchStore()
+const auth = useAuthStore()
 
 const recordId = computed(() => String(route.params.recordId || ''))
 const isCompany = computed(() => route.path.startsWith('/company'))
 const base = computed(() => (isCompany.value ? '/company' : '/person'))
+const side = computed(() => (isCompany.value ? 'COMPANY' : 'PERSON'))
+const userKey = computed(() => `${auth.userType ?? 'ANON'}:${auth.userId || 'anon'}`)
 
 const loading = ref(true)
 const detail = ref<MatchDetailVO | null>(null)
@@ -26,15 +32,78 @@ const values = computed(() => {
   return Object.keys(obj).map((k) => obj[k] ?? 0)
 })
 
+const favorite = computed(() => matchStore.favoriteSet(userKey.value).has(recordId.value))
+const feedbackList = computed(() => matchStore.feedbackByRecord(userKey.value, recordId.value))
+
+const feedbackDlg = ref(false)
+const feedbackForm = reactive<{ rating: 1 | 2 | 3 | 4 | 5; tags: string[]; comment: string }>({
+  rating: 5,
+  tags: [],
+  comment: '',
+})
+
+const feedbackTags = [
+  { label: '不相关', value: 'IRRELEVANT' },
+  { label: '分数偏低', value: 'SCORE_LOW' },
+  { label: '分数偏高', value: 'SCORE_HIGH' },
+  { label: '技能识别错误', value: 'SKILL_WRONG' },
+  { label: '建议不合理', value: 'SUGGESTION_BAD' },
+]
+
+const fmt = (iso: string) => {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString()
+}
+
+const submitFeedback = async () => {
+  if (!feedbackForm.comment.trim()) return ElMessage.warning('请填写反馈说明')
+  matchStore.addFeedback({
+    recordId: recordId.value,
+    rating: feedbackForm.rating,
+    tags: feedbackForm.tags,
+    comment: feedbackForm.comment.trim(),
+  })
+  feedbackDlg.value = false
+  feedbackForm.rating = 5
+  feedbackForm.tags = []
+  feedbackForm.comment = ''
+  ElMessage.success('反馈已记录（本地）')
+}
+
 const load = async () => {
   loading.value = true
   try {
     detail.value = await getMatchDetail(recordId.value)
+    matchStore.hydrate()
+    if (detail.value) {
+      const prev = matchStore.historyByUser(userKey.value).find((h) => h.recordId === recordId.value)
+      matchStore.addHistory(
+        {
+          recordId: recordId.value,
+          title: prev?.title ?? `匹配记录 ${recordId.value}`,
+          org: prev?.org ?? (isCompany.value ? '候选人推荐' : '职位推荐'),
+          score: detail.value.score,
+        },
+        side.value,
+      )
+    }
   } catch (e: any) {
     ElMessage.error(e?.message || '加载详情失败')
   } finally {
     loading.value = false
   }
+}
+
+const toggleFav = () => {
+  matchStore.toggleFavorite(recordId.value)
+}
+
+const clearFeedback = async () => {
+  await ElMessageBox.confirm('仅清空当前记录的本地反馈，确认继续？', '提示', { type: 'warning' })
+  matchStore.hydrate()
+  matchStore.feedbacks = matchStore.feedbacks.filter((f) => !(f.userKey === userKey.value && f.recordId === recordId.value))
+  matchStore.persist()
 }
 
 onMounted(load)
@@ -50,6 +119,8 @@ onMounted(load)
         </div>
         <div class="flex items-center gap-2">
           <el-button @click="router.push(`${base}/match/${isCompany ? 'candidates' : 'jobs'}`)">返回列表</el-button>
+          <el-button :type="favorite ? 'warning' : 'info'" @click="toggleFav">{{ favorite ? '已收藏' : '收藏' }}</el-button>
+          <el-button type="primary" @click="feedbackDlg = true">反馈</el-button>
           <el-button :loading="loading" @click="load">刷新</el-button>
         </div>
       </div>
@@ -66,6 +137,14 @@ onMounted(load)
             <div class="mt-2">
               <el-progress :percentage="detail.score" :stroke-width="10" />
             </div>
+          </div>
+
+          <div class="rounded-xl border border-zinc-200 bg-white p-4">
+            <div class="text-sm font-semibold text-zinc-700">解释要点</div>
+            <ul class="mt-3 space-y-1 text-sm text-zinc-700">
+              <li v-for="(r, idx) in detail.rationales || []" :key="idx">{{ r }}</li>
+              <li v-if="(detail.rationales || []).length === 0" class="text-zinc-600">暂无</li>
+            </ul>
           </div>
 
           <div class="rounded-xl border border-zinc-200 bg-white p-4">
@@ -104,9 +183,60 @@ onMounted(load)
               </div>
             </div>
           </el-card>
+
+          <el-card shadow="never">
+            <div class="text-sm font-semibold text-zinc-700">证据（示例）</div>
+            <div class="mt-3">
+              <el-table :data="detail.evidences || []" size="small">
+                <el-table-column prop="type" label="类型" width="100" />
+                <el-table-column prop="field" label="字段" width="140" />
+                <el-table-column prop="weight" label="权重" width="90" />
+                <el-table-column prop="snippet" label="内容" />
+              </el-table>
+            </div>
+          </el-card>
+
+          <el-card shadow="never">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-sm font-semibold text-zinc-700">你的反馈</div>
+              <el-button v-if="feedbackList.length" link type="danger" @click="clearFeedback">清空</el-button>
+            </div>
+            <div class="mt-3 space-y-2">
+              <div v-for="f in feedbackList" :key="f.id" class="rounded-lg border border-zinc-200 bg-white p-3">
+                <div class="flex items-center justify-between">
+                  <el-rate :model-value="f.rating" disabled />
+                  <div class="text-xs text-zinc-500">{{ fmt(f.createdAt) }}</div>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <el-tag v-for="t in f.tags" :key="t" type="info">{{ t }}</el-tag>
+                </div>
+                <div class="mt-2 text-sm text-zinc-700">{{ f.comment }}</div>
+              </div>
+              <div v-if="feedbackList.length === 0" class="text-sm text-zinc-600">暂无</div>
+            </div>
+          </el-card>
         </div>
       </div>
     </el-card>
   </div>
-</template>
 
+  <el-dialog v-model="feedbackDlg" title="提交反馈" width="560px">
+    <el-form label-position="top">
+      <el-form-item label="满意度">
+        <el-rate v-model="feedbackForm.rating" />
+      </el-form-item>
+      <el-form-item label="标签">
+        <el-checkbox-group v-model="feedbackForm.tags">
+          <el-checkbox v-for="t in feedbackTags" :key="t.value" :label="t.value">{{ t.label }}</el-checkbox>
+        </el-checkbox-group>
+      </el-form-item>
+      <el-form-item label="说明">
+        <el-input v-model="feedbackForm.comment" type="textarea" :rows="4" placeholder="说明你认为不准确/不合理的原因，便于后续优化。" />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="feedbackDlg = false">取消</el-button>
+      <el-button type="primary" @click="submitFeedback">提交</el-button>
+    </template>
+  </el-dialog>
+</template>
