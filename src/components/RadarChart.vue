@@ -14,6 +14,7 @@ let chart: echarts.ECharts | null = null
 const render = () => {
   if (!el.value) return
   if (!chart) chart = echarts.init(el.value)
+  else chart.resize()
   chart.setOption({
     title: { text: props.title, left: 'center', top: 8, textStyle: { fontSize: 12 } },
     tooltip: {},
@@ -26,6 +27,7 @@ const render = () => {
       },
     ],
   })
+  chart.resize()
 }
 
 onMounted(() => {
@@ -45,4 +47,3 @@ onBeforeUnmount(() => {
 <template>
   <div ref="el" class="h-[280px] w-full rounded-xl border border-zinc-200 bg-white" />
 </template>
-

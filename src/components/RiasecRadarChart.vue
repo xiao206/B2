@@ -15,6 +15,7 @@ let chart: echarts.ECharts | null = null
 const render = () => {
   if (!el.value) return
   if (!chart) chart = echarts.init(el.value)
+  else chart.resize()
   const indicator = [
     { name: 'R 现实型', max: 100 },
     { name: 'I 研究型', max: 100 },
@@ -43,6 +44,7 @@ const render = () => {
       },
     ],
   })
+  chart.resize()
 }
 
 onMounted(() => {
@@ -62,4 +64,3 @@ onBeforeUnmount(() => {
 <template>
   <div ref="el" class="h-[320px] w-full rounded-xl border border-zinc-200 bg-white" />
 </template>
-
