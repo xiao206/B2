@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import RadarChart from '@/components/RadarChart.vue'
+import RiasecRadarChart from '@/components/RiasecRadarChart.vue'
 import { getMatchDetail } from '@/api/match'
 import type { MatchDetailVO } from '@/types/match'
 import { useMatchStore } from '@/stores/match'
@@ -33,6 +34,39 @@ const values = computed(() => {
   const obj = detail.value?.scoreBreakdown ?? {}
   return Object.keys(obj).map((k) => obj[k] ?? 0)
 })
+
+const riasec = computed(() => detail.value?.riasec ?? null)
+
+const riasecPersonValues = computed(() => {
+  const r = riasec.value?.person
+  if (!r) return []
+  return [r.r, r.i, r.a, r.s, r.e, r.c]
+})
+
+const riasecTargetValues = computed(() => {
+  const r = riasec.value?.target
+  if (!r) return []
+  return [r.r, r.i, r.a, r.s, r.e, r.c]
+})
+
+const riasecCode = ['R', 'I', 'A', 'S', 'E', 'C']
+const riasecName: Record<string, string> = {
+  R: '现实型',
+  I: '研究型',
+  A: '艺术型',
+  S: '社会型',
+  E: '企业型',
+  C: '常规型',
+}
+
+const topRiasec = (values: number[]) => {
+  const pairs = values.map((v, idx) => ({ v, k: riasecCode[idx] }))
+  pairs.sort((a, b) => b.v - a.v)
+  return pairs.slice(0, 3).map((p) => `${p.k}${riasecName[p.k]}`).join(' / ')
+}
+
+const riasecPersonTop = computed(() => (riasecPersonValues.value.length ? topRiasec(riasecPersonValues.value) : '—'))
+const riasecTargetTop = computed(() => (riasecTargetValues.value.length ? topRiasec(riasecTargetValues.value) : '—'))
 
 const favorite = computed(() => matchStore.favoriteSet(userKey.value).has(recordId.value))
 const feedbackList = computed(() => matchStore.feedbackByRecord(userKey.value, recordId.value))
@@ -173,6 +207,28 @@ onMounted(load)
 
         <div class="lg:col-span-2 space-y-4">
           <RadarChart title="分项拆解（示例）" :indicators="indicators" :values="values" />
+
+          <el-card v-if="riasec" shadow="never">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div class="text-sm font-semibold text-zinc-700">霍兰德 RIASEC（六维画像）</div>
+                <div class="mt-1 text-xs text-zinc-500">
+                  个人主导：{{ riasecPersonTop }}；目标主导：{{ riasecTargetTop }}；相似度：{{ riasec.similarity }}%
+                </div>
+              </div>
+              <el-tag :type="riasec.similarity >= 75 ? 'success' : riasec.similarity >= 60 ? 'warning' : 'danger'">
+                {{ riasec.similarity >= 75 ? '较匹配' : riasec.similarity >= 60 ? '一般' : '偏低' }}
+              </el-tag>
+            </div>
+            <div class="mt-3">
+              <RiasecRadarChart
+                title="RIASEC 雷达图"
+                :person-values="riasecPersonValues"
+                :target-values="riasecTargetValues"
+                :labels="{ person: isCompany ? '候选人' : '你', target: isCompany ? '岗位' : '岗位' }"
+              />
+            </div>
+          </el-card>
 
           <el-card shadow="never">
             <div class="text-sm font-semibold text-zinc-700">技能覆盖</div>

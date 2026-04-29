@@ -28,6 +28,21 @@ export interface MatchHistoryItem extends MatchListItem {
   side: 'PERSON' | 'COMPANY'
 }
 
+export interface RiasecProfile {
+  r: number
+  i: number
+  a: number
+  s: number
+  e: number
+  c: number
+}
+
+export interface RiasecMatch {
+  person: RiasecProfile
+  target: RiasecProfile
+  similarity: number
+}
+
 export interface MatchDetailVO {
   recordId: string
   score: number
@@ -37,4 +52,5 @@ export interface MatchDetailVO {
   suggestions?: string[]
   evidences?: MatchEvidence[]
   rationales?: string[]
+  riasec?: RiasecMatch
 }

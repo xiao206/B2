@@ -192,6 +192,25 @@ export const mockMatch = {
   },
   async detail(recordId: string): Promise<MatchDetailVO> {
     const isJob = recordId.startsWith('rec-job-')
+    const person =
+      recordId.endsWith('002')
+        ? { r: 30, i: 55, a: 35, s: 40, e: 25, c: 60 }
+        : { r: 35, i: 45, a: 30, s: 55, e: 40, c: 35 }
+    const target = isJob
+      ? recordId.endsWith('002')
+        ? { r: 45, i: 50, a: 25, s: 30, e: 40, c: 55 }
+        : { r: 30, i: 40, a: 35, s: 50, e: 45, c: 30 }
+      : recordId.endsWith('002')
+        ? { r: 40, i: 45, a: 30, s: 55, e: 35, c: 40 }
+        : { r: 35, i: 50, a: 28, s: 45, e: 38, c: 42 }
+    const dist =
+      Math.abs(person.r - target.r) +
+      Math.abs(person.i - target.i) +
+      Math.abs(person.a - target.a) +
+      Math.abs(person.s - target.s) +
+      Math.abs(person.e - target.e) +
+      Math.abs(person.c - target.c)
+    const similarity = Math.max(0, Math.min(100, Math.round(100 - dist / 6)))
     return {
       recordId,
       score: isJob ? (recordId.endsWith('002') ? 79 : 86) : recordId.endsWith('002') ? 77 : 84,
@@ -215,6 +234,7 @@ export const mockMatch = {
         { type: 'GRAPH', field: 'HAS_SKILL', snippet: 'Person -> Vue 3 / TypeScript', weight: 0.25 },
         { type: 'VECTOR', field: 'embedding', snippet: '语义相似度（文本向量）', weight: 0.4 },
       ],
+      riasec: { person, target, similarity },
       suggestions: [
         '补齐图谱可视化能力（G6 基础与交互），优先掌握布局与事件系统',
         '完善工程化规范：路由守卫、错误兜底与性能分包',
