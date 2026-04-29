@@ -24,6 +24,13 @@ const selectedId = ref<string>('')
 const drawerOpen = ref(false)
 const keyword = ref('')
 
+type ExpansionInfo = { nodeIds: string[]; edgeIds: string[] }
+const expandedByNode = ref<Record<string, ExpansionInfo>>({})
+let originNodeIds = new Set<string>()
+let originEdgeIds = new Set<string>()
+const nodeRef = new Map<string, number>()
+const edgeRef = new Map<string, number>()
+
 const nodeMap = computed(() => {
   const m = new Map<string, GraphNode>()
   for (const n of baseData.value.nodes) m.set(n.id, n)
@@ -78,8 +85,13 @@ const load = async () => {
   loading.value = true
   selectedId.value = ''
   drawerOpen.value = false
+  expandedByNode.value = {}
+  nodeRef.clear()
+  edgeRef.clear()
   try {
     baseData.value = isCompany.value ? await getJobGraph(subjectId.value) : await getPersonGraph(subjectId.value)
+    originNodeIds = new Set(baseData.value.nodes.map((n) => n.id))
+    originEdgeIds = new Set(baseData.value.edges.map((e) => e.id))
   } catch (e: any) {
     ElMessage.error(e?.message || '加载图谱失败')
   } finally {
@@ -105,15 +117,67 @@ const onPick = (item: any) => {
   graphRef.value?.focusNode(id)
 }
 
-const expand = async () => {
-  if (!selectedId.value) return
+const isExpanded = computed(() => Boolean(selectedId.value && expandedByNode.value[selectedId.value]))
+
+const toggleExpand = async () => {
+  const id = selectedId.value
+  if (!id) return
+
+  if (expandedByNode.value[id]) {
+    const info = expandedByNode.value[id]
+    delete expandedByNode.value[id]
+
+    for (const nid of info.nodeIds) {
+      const c = nodeRef.get(nid) ?? 0
+      const next = c - 1
+      if (next <= 0) nodeRef.delete(nid)
+      else nodeRef.set(nid, next)
+    }
+
+    for (const eid of info.edgeIds) {
+      const c = edgeRef.get(eid) ?? 0
+      const next = c - 1
+      if (next <= 0) edgeRef.delete(eid)
+      else edgeRef.set(eid, next)
+    }
+
+    baseData.value = {
+      nodes: baseData.value.nodes.filter((n) => originNodeIds.has(n.id) || (nodeRef.get(n.id) ?? 0) > 0),
+      edges: baseData.value.edges.filter((e) => originEdgeIds.has(e.id) || (edgeRef.get(e.id) ?? 0) > 0),
+    }
+    return
+  }
+
   try {
-    const patch = await expandGraphNode({ subject: subject.value, nodeId: selectedId.value })
+    const patch = await expandGraphNode({ subject: subject.value, nodeId: id })
     const nodeIds = new Set(baseData.value.nodes.map((n) => n.id))
     const edgeIds = new Set(baseData.value.edges.map((e) => e.id))
-    const nodes = baseData.value.nodes.concat(patch.nodes.filter((n) => !nodeIds.has(n.id)))
-    const edges = baseData.value.edges.concat(patch.edges.filter((e) => !edgeIds.has(e.id)))
-    baseData.value = { nodes, edges }
+
+    const addNodes: GraphNode[] = []
+    const infoNodeIds: string[] = []
+    for (const n of patch.nodes) {
+      if (originNodeIds.has(n.id)) continue
+      const prev = nodeRef.get(n.id) ?? 0
+      nodeRef.set(n.id, prev + 1)
+      infoNodeIds.push(n.id)
+      if (!nodeIds.has(n.id) && prev === 0) addNodes.push(n)
+    }
+
+    const addEdges = []
+    const infoEdgeIds: string[] = []
+    for (const e of patch.edges) {
+      if (originEdgeIds.has(e.id)) continue
+      const prev = edgeRef.get(e.id) ?? 0
+      edgeRef.set(e.id, prev + 1)
+      infoEdgeIds.push(e.id)
+      if (!edgeIds.has(e.id) && prev === 0) addEdges.push(e)
+    }
+
+    expandedByNode.value[id] = { nodeIds: infoNodeIds, edgeIds: infoEdgeIds }
+    baseData.value = {
+      nodes: baseData.value.nodes.concat(addNodes),
+      edges: baseData.value.edges.concat(addEdges),
+    }
   } catch (e: any) {
     ElMessage.error(e?.message || '展开失败')
   }
@@ -169,7 +233,7 @@ onMounted(async () => {
         </el-descriptions>
 
         <div class="flex gap-2">
-          <el-button type="primary" @click="expand">展开邻居</el-button>
+          <el-button type="primary" @click="toggleExpand">{{ isExpanded ? '收起邻居' : '展开邻居' }}</el-button>
           <el-button @click="graphRef?.focusNode(selectedNode.id)">定位</el-button>
         </div>
 
