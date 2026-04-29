@@ -4,6 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useDocumentStore } from '@/stores/document'
 import { getParseResult } from '@/api/document'
 import type { ParseResultVO } from '@/types/document'
+import { downloadCsv, downloadJson } from '@/utils/export'
 
 const docsStore = useDocumentStore()
 const drawerOpen = ref(false)
@@ -55,6 +56,24 @@ const removeDoc = async (docId: string) => {
     drawerOpen.value = false
   }
 }
+
+const exportJson = () => {
+  downloadJson(`admin-docs-${Date.now()}.json`, list.value)
+}
+
+const exportCsv = () => {
+  downloadCsv(
+    `admin-docs-${Date.now()}.csv`,
+    list.value.map((d) => ({
+      id: d.id,
+      docType: d.docType,
+      fileName: d.fileName,
+      fileType: d.fileType,
+      status: d.status,
+      createdAt: d.createdAt,
+    })),
+  )
+}
 </script>
 
 <template>
@@ -83,7 +102,8 @@ const removeDoc = async (docId: string) => {
           <el-option label="FAILED" value="FAILED" />
         </el-select>
         <div class="flex items-center justify-end">
-          <el-button v-permission="'ADMIN_DOCS_VIEW'" type="primary">导出（占位）</el-button>
+          <el-button v-permission="'ADMIN_DOCS_VIEW'" @click="exportJson">导出 JSON</el-button>
+          <el-button v-permission="'ADMIN_DOCS_VIEW'" type="primary" @click="exportCsv">导出 CSV</el-button>
         </div>
       </div>
 

@@ -1,27 +1,27 @@
 import type { RouteRecordRaw } from 'vue-router'
-import AuthLayout from '@/layouts/AuthLayout.vue'
-import MainLayout from '@/layouts/MainLayout.vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import LoginPage from '@/pages/auth/LoginPage.vue'
-import RegisterPage from '@/pages/auth/RegisterPage.vue'
-import PersonDashboardPage from '@/pages/person/PersonDashboardPage.vue'
-import CompanyDashboardPage from '@/pages/company/CompanyDashboardPage.vue'
-import DocumentListPage from '@/pages/document/DocumentListPage.vue'
-import DocumentUploadPage from '@/pages/document/DocumentUploadPage.vue'
-import ParseTaskPage from '@/pages/document/ParseTaskPage.vue'
-import ParseResultPage from '@/pages/document/ParseResultPage.vue'
-import GraphPage from '@/pages/graph/GraphPage.vue'
-import MatchListPage from '@/pages/match/MatchListPage.vue'
-import MatchDetailPage from '@/pages/match/MatchDetailPage.vue'
-import AdminHomePage from '@/pages/admin/AdminHomePage.vue'
-import AdminUsersPage from '@/pages/admin/AdminUsersPage.vue'
-import AdminDocumentsPage from '@/pages/admin/AdminDocumentsPage.vue'
-import AdminDataPage from '@/pages/admin/AdminDataPage.vue'
-import AdminMatchPage from '@/pages/admin/AdminMatchPage.vue'
-import AdminMonitorPage from '@/pages/admin/AdminMonitorPage.vue'
-import AdminAuditPage from '@/pages/admin/AdminAuditPage.vue'
-import ForbiddenPage from '@/pages/system/ForbiddenPage.vue'
-import NotFoundPage from '@/pages/system/NotFoundPage.vue'
+const AuthLayout = () => import('@/layouts/AuthLayout.vue')
+const MainLayout = () => import('@/layouts/MainLayout.vue')
+const AdminLayout = () => import('@/layouts/AdminLayout.vue')
+const LoginPage = () => import('@/pages/auth/LoginPage.vue')
+const RegisterPage = () => import('@/pages/auth/RegisterPage.vue')
+const PersonDashboardPage = () => import('@/pages/person/PersonDashboardPage.vue')
+const CompanyDashboardPage = () => import('@/pages/company/CompanyDashboardPage.vue')
+const DocumentListPage = () => import('@/pages/document/DocumentListPage.vue')
+const DocumentUploadPage = () => import('@/pages/document/DocumentUploadPage.vue')
+const ParseTaskPage = () => import('@/pages/document/ParseTaskPage.vue')
+const ParseResultPage = () => import('@/pages/document/ParseResultPage.vue')
+const GraphPage = () => import('@/pages/graph/GraphPage.vue')
+const MatchListPage = () => import('@/pages/match/MatchListPage.vue')
+const MatchDetailPage = () => import('@/pages/match/MatchDetailPage.vue')
+const AdminHomePage = () => import('@/pages/admin/AdminHomePage.vue')
+const AdminUsersPage = () => import('@/pages/admin/AdminUsersPage.vue')
+const AdminDocumentsPage = () => import('@/pages/admin/AdminDocumentsPage.vue')
+const AdminDataPage = () => import('@/pages/admin/AdminDataPage.vue')
+const AdminMatchPage = () => import('@/pages/admin/AdminMatchPage.vue')
+const AdminMonitorPage = () => import('@/pages/admin/AdminMonitorPage.vue')
+const AdminAuditPage = () => import('@/pages/admin/AdminAuditPage.vue')
+const ForbiddenPage = () => import('@/pages/system/ForbiddenPage.vue')
+const NotFoundPage = () => import('@/pages/system/NotFoundPage.vue')
 
 export type UserType = 'PERSON' | 'COMPANY' | 'ADMIN'
 

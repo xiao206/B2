@@ -7,11 +7,13 @@ import { getMatchDetail } from '@/api/match'
 import type { MatchDetailVO } from '@/types/match'
 import { useMatchStore } from '@/stores/match'
 import { useAuthStore } from '@/stores/auth'
+import { useAuditStore } from '@/stores/audit'
 
 const route = useRoute()
 const router = useRouter()
 const matchStore = useMatchStore()
 const auth = useAuthStore()
+const audit = useAuditStore()
 
 const recordId = computed(() => String(route.params.recordId || ''))
 const isCompany = computed(() => route.path.startsWith('/company'))
@@ -64,6 +66,12 @@ const submitFeedback = async () => {
     tags: feedbackForm.tags,
     comment: feedbackForm.comment.trim(),
   })
+  audit.hydrate()
+  audit.add({
+    module: 'match.feedback',
+    result: 'OK',
+    detail: { recordId: recordId.value, rating: feedbackForm.rating, tags: feedbackForm.tags },
+  })
   feedbackDlg.value = false
   feedbackForm.rating = 5
   feedbackForm.tags = []
@@ -97,6 +105,8 @@ const load = async () => {
 
 const toggleFav = () => {
   matchStore.toggleFavorite(recordId.value)
+  audit.hydrate()
+  audit.add({ module: 'match.favorite.toggle', result: 'OK', detail: { recordId: recordId.value } })
 }
 
 const clearFeedback = async () => {
@@ -104,6 +114,8 @@ const clearFeedback = async () => {
   matchStore.hydrate()
   matchStore.feedbacks = matchStore.feedbacks.filter((f) => !(f.userKey === userKey.value && f.recordId === recordId.value))
   matchStore.persist()
+  audit.hydrate()
+  audit.add({ module: 'match.feedback.clear', result: 'OK', detail: { recordId: recordId.value } })
 }
 
 onMounted(load)

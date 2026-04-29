@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDocumentStore } from '@/stores/document'
 import type { DocStatus } from '@/types/document'
+import AppEmpty from '@/components/AppEmpty.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -48,9 +49,9 @@ const goResult = (docId: string) => router.push(`${base.value}/doc/result/${enco
     </el-card>
 
     <el-card shadow="never">
-      <div v-if="list.length === 0" class="text-sm text-zinc-600">
-        暂无记录，请先上传文档。
-      </div>
+      <AppEmpty v-if="list.length === 0" description="暂无记录，请先上传文档。">
+        <el-button type="primary" @click="goUpload">去上传</el-button>
+      </AppEmpty>
       <el-table v-else :data="list">
         <el-table-column prop="fileName" label="文件名" min-width="260" />
         <el-table-column prop="fileType" label="类型" width="90" />
@@ -70,4 +71,3 @@ const goResult = (docId: string) => router.push(`${base.value}/doc/result/${enco
     </el-card>
   </div>
 </template>
-

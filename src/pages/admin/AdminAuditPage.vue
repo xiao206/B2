@@ -1,27 +1,63 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ElMessageBox } from 'element-plus'
+import { useAuditStore, type AuditLogRow } from '@/stores/audit'
+import { downloadCsv, downloadJson } from '@/utils/export'
+import { maskUserKey } from '@/utils/mask'
 
-type LogRow = { id: string; user: string; module: string; result: 'OK' | 'FAIL'; time: string; detail: Record<string, unknown> }
+const store = useAuditStore()
 
-const query = reactive({ user: '', module: '' })
-const rows = ref<LogRow[]>([
-  { id: 'log-001', user: 'demo', module: 'document.upload', result: 'OK', time: '2026-04-28 10:12:33', detail: { docType: 'RESUME' } },
-  { id: 'log-002', user: 'admin', module: 'admin.users', result: 'OK', time: '2026-04-28 10:18:07', detail: { action: 'upsert' } },
-  { id: 'log-003', user: 'hr-demo', module: 'match.recommend', result: 'FAIL', time: '2026-04-28 10:22:41', detail: { reason: 'timeout' } },
-])
+onMounted(() => {
+  store.hydrate()
+})
+
+const query = reactive({ user: '', module: '', result: '' as '' | 'OK' | 'FAIL' })
 
 const list = computed(() => {
   const u = query.user.trim()
   const m = query.module.trim()
-  return rows.value.filter((r) => (!u || r.user.includes(u)) && (!m || r.module.includes(m)))
+  return store.logs.filter((r) => {
+    if (u && !r.userKey.includes(u)) return false
+    if (m && !r.module.includes(m)) return false
+    if (query.result && r.result !== query.result) return false
+    return true
+  })
 })
 
 const drawerOpen = ref(false)
-const current = ref<LogRow | null>(null)
+const current = ref<AuditLogRow | null>(null)
 
-const openDetail = (row: LogRow) => {
+const openDetail = (row: AuditLogRow) => {
   current.value = row
   drawerOpen.value = true
+}
+
+const fmt = (iso: string) => {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString()
+}
+
+const exportJson = () => {
+  downloadJson(`audit-${Date.now()}.json`, list.value)
+}
+
+const exportCsv = () => {
+  downloadCsv(
+    `audit-${Date.now()}.csv`,
+    list.value.map((r) => ({
+      time: r.time,
+      userKey: maskUserKey(r.userKey),
+      module: r.module,
+      result: r.result,
+      detail: JSON.stringify(r.detail),
+    })),
+  )
+}
+
+const clearAll = async () => {
+  await ElMessageBox.confirm('确认清空所有审计日志（本地）？', '提示', { type: 'warning' })
+  store.clear()
 }
 </script>
 
@@ -37,19 +73,33 @@ const openDetail = (row: LogRow) => {
     </el-card>
 
     <el-card shadow="never">
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <el-input v-model="query.user" placeholder="用户" clearable />
-        <el-input v-model="query.module" placeholder="模块" clearable />
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <el-input v-model="query.user" placeholder="用户Key（如 PERSON:demo）" clearable />
+        <el-input v-model="query.module" placeholder="模块（如 match.）" clearable />
+        <el-select v-model="query.result" placeholder="结果" clearable>
+          <el-option label="OK" value="OK" />
+          <el-option label="FAIL" value="FAIL" />
+        </el-select>
         <div class="flex items-center justify-end">
-          <el-button v-permission="'ADMIN_AUDIT_VIEW'" type="primary">导出（占位）</el-button>
+          <el-button v-permission="'ADMIN_AUDIT_VIEW'" @click="exportJson">导出 JSON</el-button>
+          <el-button v-permission="'ADMIN_AUDIT_VIEW'" @click="exportCsv">导出 CSV</el-button>
+          <el-button v-permission="'ADMIN_AUDIT_VIEW'" type="danger" @click="clearAll">清空</el-button>
         </div>
       </div>
     </el-card>
 
     <el-card shadow="never">
       <el-table :data="list">
-        <el-table-column prop="time" label="时间" width="180" />
-        <el-table-column prop="user" label="用户" width="160" />
+        <el-table-column prop="time" label="时间" width="200">
+          <template #default="{ row }">
+            <span class="text-xs text-zinc-600">{{ fmt(row.time) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="userKey" label="用户" width="200">
+          <template #default="{ row }">
+            <span class="text-xs text-zinc-700">{{ maskUserKey(row.userKey) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="module" label="模块" min-width="240" />
         <el-table-column prop="result" label="结果" width="120">
           <template #default="{ row }">
@@ -69,8 +119,8 @@ const openDetail = (row: LogRow) => {
     <div v-if="!current" class="text-sm text-zinc-600">暂无</div>
     <div v-else class="space-y-3">
       <el-descriptions :column="1" border>
-        <el-descriptions-item label="时间">{{ current.time }}</el-descriptions-item>
-        <el-descriptions-item label="用户">{{ current.user }}</el-descriptions-item>
+        <el-descriptions-item label="时间">{{ fmt(current.time) }}</el-descriptions-item>
+        <el-descriptions-item label="用户">{{ maskUserKey(current.userKey) }}</el-descriptions-item>
         <el-descriptions-item label="模块">{{ current.module }}</el-descriptions-item>
         <el-descriptions-item label="结果">{{ current.result }}</el-descriptions-item>
         <el-descriptions-item label="ID">{{ current.id }}</el-descriptions-item>

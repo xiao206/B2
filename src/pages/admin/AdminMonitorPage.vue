@@ -1,11 +1,44 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useAuditStore } from '@/stores/audit'
+import { useDocumentStore } from '@/stores/document'
 
-const stats = ref([
-  { title: '解析成功率', value: '98.2%', hint: '近 24h（演示）', type: 'success' as const },
-  { title: '解析平均耗时', value: '2.6s', hint: '近 24h（演示）', type: 'info' as const },
-  { title: '匹配平均响应', value: '420ms', hint: '近 24h（演示）', type: 'warning' as const },
-  { title: '模型模式', value: '本地', hint: '最近健康检查：刚刚', type: 'danger' as const },
+const audit = useAuditStore()
+const docs = useDocumentStore()
+
+const now = ref(Date.now())
+
+const tick = () => {
+  now.value = Date.now()
+}
+
+onMounted(() => {
+  audit.hydrate()
+  docs.hydrate()
+  setInterval(tick, 15000)
+})
+
+const within24h = computed(() => now.value - 24 * 3600 * 1000)
+
+const parseLogs = computed(() => audit.logs.filter((x) => x.module === 'document.parse' && new Date(x.time).getTime() >= within24h.value))
+const matchLogs = computed(() => audit.logs.filter((x) => x.module === 'match.recommend' && new Date(x.time).getTime() >= within24h.value))
+
+const parseSuccessRate = computed(() => {
+  const total = parseLogs.value.length
+  if (!total) return '—'
+  const ok = parseLogs.value.filter((x) => x.result === 'OK').length
+  return `${((ok / total) * 100).toFixed(1)}%`
+})
+
+const matchCalls = computed(() => matchLogs.value.length)
+const docDone = computed(() => docs.docs.filter((d) => d.status === 'DONE').length)
+const docFailed = computed(() => docs.docs.filter((d) => d.status === 'FAILED').length)
+
+const stats = computed(() => [
+  { title: '解析成功率', value: parseSuccessRate.value, hint: '近 24h（基于审计）', type: 'success' as const },
+  { title: '匹配调用量', value: `${matchCalls.value}`, hint: '近 24h（基于审计）', type: 'info' as const },
+  { title: '文档完成数', value: `${docDone.value}`, hint: '本地文档库', type: 'warning' as const },
+  { title: '文档失败数', value: `${docFailed.value}`, hint: '本地文档库', type: 'danger' as const },
 ])
 </script>
 
@@ -40,4 +73,3 @@ const stats = ref([
     </el-card>
   </div>
 </template>
-

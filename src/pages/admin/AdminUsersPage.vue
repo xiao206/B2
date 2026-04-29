@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAdminUsersStore, type AdminUserRow, type AdminUserStatus, type AdminUserType } from '@/stores/adminUsers'
+import { downloadCsv, downloadJson } from '@/utils/export'
 
 const store = useAdminUsersStore()
 
@@ -75,6 +76,24 @@ const resetPassword = async (row: AdminUserRow) => {
   ElMessage.success('已重置为默认密码（演示）')
 }
 
+const exportJson = () => {
+  downloadJson(`admin-users-${Date.now()}.json`, list.value)
+}
+
+const exportCsv = () => {
+  downloadCsv(
+    `admin-users-${Date.now()}.csv`,
+    list.value.map((u) => ({
+      id: u.id,
+      account: u.account,
+      userType: u.userType,
+      status: u.status,
+      createdAt: u.createdAt,
+      lastLoginAt: u.lastLoginAt ?? '',
+    })),
+  )
+}
+
 const fmt = (iso?: string) => {
   if (!iso) return '-'
   const d = new Date(iso)
@@ -108,6 +127,8 @@ const fmt = (iso?: string) => {
         </el-select>
         <div class="flex items-center justify-end">
           <el-button v-permission="'ADMIN_USERS_VIEW'" type="primary" @click="openCreate">新增用户</el-button>
+          <el-button v-permission="'ADMIN_USERS_VIEW'" @click="exportJson">导出 JSON</el-button>
+          <el-button v-permission="'ADMIN_USERS_VIEW'" @click="exportCsv">导出 CSV</el-button>
         </div>
       </div>
 

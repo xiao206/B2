@@ -6,11 +6,14 @@ import { recommendCandidates, recommendJobs } from '@/api/match'
 import type { MatchListItem } from '@/types/match'
 import { useMatchStore } from '@/stores/match'
 import { useAuthStore } from '@/stores/auth'
+import { useAuditStore } from '@/stores/audit'
+import AppEmpty from '@/components/AppEmpty.vue'
 
 const route = useRoute()
 const router = useRouter()
 const matchStore = useMatchStore()
 const auth = useAuthStore()
+const audit = useAuditStore()
 
 const isCompany = computed(() => route.path.startsWith('/company'))
 const title = computed(() => (isCompany.value ? '候选人推荐' : '职位推荐'))
@@ -45,7 +48,19 @@ const load = async () => {
   loading.value = true
   try {
     list.value = isCompany.value ? await recommendCandidates() : await recommendJobs()
+    audit.hydrate()
+    audit.add({
+      module: 'match.recommend',
+      result: 'OK',
+      detail: { side: isCompany.value ? 'COMPANY' : 'PERSON', count: list.value.length },
+    })
   } catch (e: any) {
+    audit.hydrate()
+    audit.add({
+      module: 'match.recommend',
+      result: 'FAIL',
+      detail: { side: isCompany.value ? 'COMPANY' : 'PERSON', message: e?.message || '加载推荐失败' },
+    })
     ElMessage.error(e?.message || '加载推荐失败')
   } finally {
     loading.value = false
@@ -60,11 +75,19 @@ onMounted(() => {
 const openDetail = (row: MatchListItem) => {
   const base = isCompany.value ? '/company' : '/person'
   matchStore.addHistory(row, isCompany.value ? 'COMPANY' : 'PERSON')
+  audit.hydrate()
+  audit.add({
+    module: 'match.detail.open',
+    result: 'OK',
+    detail: { side: isCompany.value ? 'COMPANY' : 'PERSON', recordId: row.recordId },
+  })
   router.push(`${base}/match/detail/${encodeURIComponent(row.recordId)}`)
 }
 
 const toggleFav = (recordId: string) => {
   matchStore.toggleFavorite(recordId)
+  audit.hydrate()
+  audit.add({ module: 'match.favorite.toggle', result: 'OK', detail: { recordId } })
 }
 </script>
 
@@ -87,6 +110,9 @@ const toggleFav = (recordId: string) => {
         <el-tab-pane label="历史" name="history" />
       </el-tabs>
 
+      <AppEmpty v-if="tab === 'recommend' && !loading && list.length === 0" description="暂无推荐数据。">
+        <el-button type="primary" @click="load">刷新</el-button>
+      </AppEmpty>
       <el-table
         v-if="tab === 'recommend'"
         :data="list"
@@ -109,6 +135,9 @@ const toggleFav = (recordId: string) => {
         </el-table-column>
       </el-table>
 
+      <AppEmpty v-else-if="tab === 'favorite' && favoriteList.length === 0" description="暂无收藏。">
+        <el-button @click="tab = 'recommend'">去推荐列表</el-button>
+      </AppEmpty>
       <el-table
         v-else-if="tab === 'favorite'"
         :data="favoriteList"
@@ -128,6 +157,7 @@ const toggleFav = (recordId: string) => {
         </el-table-column>
       </el-table>
 
+      <AppEmpty v-else-if="tab === 'history' && historyList.length === 0" description="暂无历史记录。" />
       <el-table
         v-else
         :data="historyList"

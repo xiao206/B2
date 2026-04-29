@@ -8,6 +8,17 @@ import traeBadgePlugin from 'vite-plugin-trae-solo-badge'
 export default defineConfig({
   build: {
     sourcemap: 'hidden',
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vue: ['vue', 'vue-router', 'pinia'],
+          element: ['element-plus'],
+          echarts: ['echarts'],
+          g6: ['@antv/g6'],
+        },
+      },
+    },
   },
   server: {
     proxy: {

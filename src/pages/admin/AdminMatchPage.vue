@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { getDataStorage } from '@/utils/storage'
 import type { MatchFeedback, MatchHistoryItem } from '@/types/match'
+import { downloadCsv, downloadJson } from '@/utils/export'
+import { maskUserKey } from '@/utils/mask'
 
 const MATCH_KEY = 'aimap.match'
 
@@ -46,6 +48,39 @@ const filteredFeedback = computed(() => {
   const r = query.recordId.trim()
   return state.value.feedbacks.filter((x) => (!u || x.userKey.includes(u)) && (!r || x.recordId.includes(r)))
 })
+
+const exportJson = () => {
+  downloadJson(`admin-match-${Date.now()}.json`, tab.value === 'history' ? filteredHistory.value : filteredFeedback.value)
+}
+
+const exportCsv = () => {
+  if (tab.value === 'history') {
+    downloadCsv(
+      `admin-match-history-${Date.now()}.csv`,
+      filteredHistory.value.map((r) => ({
+        viewedAt: r.viewedAt,
+        userKey: maskUserKey(r.userKey),
+        side: r.side,
+        recordId: r.recordId,
+        title: r.title,
+        org: r.org,
+        score: r.score,
+      })),
+    )
+  } else {
+    downloadCsv(
+      `admin-match-feedback-${Date.now()}.csv`,
+      filteredFeedback.value.map((r) => ({
+        createdAt: r.createdAt,
+        userKey: maskUserKey(r.userKey),
+        recordId: r.recordId,
+        rating: r.rating,
+        tags: r.tags.join('|'),
+        comment: r.comment,
+      })),
+    )
+  }
+}
 </script>
 
 <template>
@@ -65,7 +100,8 @@ const filteredFeedback = computed(() => {
         <el-input v-model="query.userKey" placeholder="用户Key（如 PERSON:demo）" clearable />
         <el-input v-model="query.recordId" placeholder="RecordId" clearable />
         <div class="flex items-center justify-end">
-          <el-button v-permission="'ADMIN_MATCH_VIEW'" type="primary">导出（占位）</el-button>
+          <el-button v-permission="'ADMIN_MATCH_VIEW'" @click="exportJson">导出 JSON</el-button>
+          <el-button v-permission="'ADMIN_MATCH_VIEW'" type="primary" @click="exportCsv">导出 CSV</el-button>
         </div>
       </div>
     </el-card>
@@ -80,7 +116,9 @@ const filteredFeedback = computed(() => {
         <el-table-column prop="viewedAt" label="时间" width="200">
           <template #default="{ row }">{{ fmt(row.viewedAt) }}</template>
         </el-table-column>
-        <el-table-column prop="userKey" label="用户" width="200" />
+        <el-table-column prop="userKey" label="用户" width="200">
+          <template #default="{ row }">{{ maskUserKey(row.userKey) }}</template>
+        </el-table-column>
         <el-table-column prop="side" label="端" width="100" />
         <el-table-column prop="recordId" label="RecordId" width="180" />
         <el-table-column prop="title" label="标题" min-width="220" />
@@ -92,7 +130,9 @@ const filteredFeedback = computed(() => {
         <el-table-column prop="createdAt" label="时间" width="200">
           <template #default="{ row }">{{ fmt(row.createdAt) }}</template>
         </el-table-column>
-        <el-table-column prop="userKey" label="用户" width="200" />
+        <el-table-column prop="userKey" label="用户" width="200">
+          <template #default="{ row }">{{ maskUserKey(row.userKey) }}</template>
+        </el-table-column>
         <el-table-column prop="recordId" label="RecordId" width="180" />
         <el-table-column prop="rating" label="评分" width="120" />
         <el-table-column label="标签" width="220">
@@ -107,4 +147,3 @@ const filteredFeedback = computed(() => {
     </el-card>
   </div>
 </template>
-

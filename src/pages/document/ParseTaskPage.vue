@@ -5,12 +5,14 @@ import { ElMessage } from 'element-plus'
 import { getDocumentStatus } from '@/api/document'
 import { usePolling } from '@/composables/usePolling'
 import { useDocumentStore } from '@/stores/document'
+import { useAuditStore } from '@/stores/audit'
 
 type DocStatus = 'UPLOADING' | 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'
 
 const route = useRoute()
 const router = useRouter()
 const docsStore = useDocumentStore()
+const audit = useAuditStore()
 
 const docId = computed(() => String(route.params.docId || ''))
 const status = ref<DocStatus>('PENDING')
@@ -35,10 +37,24 @@ const fetchStatus = async () => {
     loading.value = false
     docsStore.hydrate()
     docsStore.updateStatus(docId.value, s)
+    if (s === 'DONE' || s === 'FAILED') {
+      audit.hydrate()
+      audit.add({
+        module: 'document.parse',
+        result: s === 'DONE' ? 'OK' : 'FAIL',
+        detail: { docId: docId.value, status: s },
+      })
+    }
     if (s === 'DONE' || s === 'FAILED') poll.stop()
   } catch (e: any) {
     loading.value = false
     poll.stop()
+    audit.hydrate()
+    audit.add({
+      module: 'document.parse',
+      result: 'FAIL',
+      detail: { docId: docId.value, message: e?.message || '查询状态失败' },
+    })
     ElMessage.error(e?.message || '查询状态失败')
   }
 }
