@@ -18,6 +18,7 @@ describe('match store', () => {
     s1.toggleFavorite('rec-job-001')
     s1.addHistory({ recordId: 'rec-job-001', title: 't', org: 'o', score: 80 }, 'PERSON')
     s1.addFeedback({ recordId: 'rec-job-001', rating: 5, tags: ['IRRELEVANT'], comment: 'ok' })
+    s1.setProgress('rec-job-001', 'APPLIED')
 
     setActivePinia(createPinia())
     const auth2 = useAuthStore()
@@ -30,6 +31,6 @@ describe('match store', () => {
     expect(s2.favoriteSet(key).has('rec-job-001')).toBe(true)
     expect(s2.historyByUser(key)[0].recordId).toBe('rec-job-001')
     expect(s2.feedbackByRecord(key, 'rec-job-001').length).toBe(1)
+    expect(s2.progressByRecord(key, 'rec-job-001')?.status).toBe('APPLIED')
   })
 })
-

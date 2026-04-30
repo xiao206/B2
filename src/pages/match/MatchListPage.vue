@@ -23,8 +23,13 @@ const list = ref<MatchListItem[]>([])
 const loading = ref(true)
 const tab = ref<'recommend' | 'favorite' | 'history'>('recommend')
 
-const query = reactive<{ keyword: string; sort: 'score_desc' | 'score_asc' | 'viewed_desc' | 'viewed_asc' }>({
+const query = reactive<{
+  keyword: string
+  status: 'ALL' | 'NONE' | 'APPLIED' | 'CONTACTING' | 'INTERVIEW' | 'OFFER' | 'NOT_FIT'
+  sort: 'score_desc' | 'score_asc' | 'viewed_desc' | 'viewed_asc'
+}>({
   keyword: '',
+  status: 'ALL',
   sort: 'score_desc',
 })
 
@@ -60,7 +65,8 @@ const keyword = computed(() => query.keyword.trim().toLowerCase())
 
 const filteredRecommend = computed(() => {
   const k = keyword.value
-  const rows = !k ? list.value.slice() : list.value.filter((r) => `${r.title} ${r.org}`.toLowerCase().includes(k))
+  const rows0 = !k ? list.value.slice() : list.value.filter((r) => `${r.title} ${r.org}`.toLowerCase().includes(k))
+  const rows = query.status === 'ALL' ? rows0 : rows0.filter((r) => progressOf(r.recordId) === query.status)
   rows.sort((a, b) => (query.sort === 'score_asc' ? a.score - b.score : b.score - a.score))
   return rows
 })
@@ -70,15 +76,17 @@ const filteredFavorite = computed(() => {
   const rows = !k
     ? favoriteList.value.slice()
     : favoriteList.value.filter((r) => `${r.title} ${r.org}`.toLowerCase().includes(k))
-  rows.sort((a, b) => (query.sort === 'score_asc' ? a.score - b.score : b.score - a.score))
-  return rows
+  const rows2 = query.status === 'ALL' ? rows : rows.filter((r) => progressOf(r.recordId) === query.status)
+  rows2.sort((a, b) => (query.sort === 'score_asc' ? a.score - b.score : b.score - a.score))
+  return rows2
 })
 
 const filteredHistory = computed(() => {
   const k = keyword.value
-  const rows = !k
+  const rows0 = !k
     ? historyList.value.slice()
     : historyList.value.filter((r) => `${r.title} ${r.org}`.toLowerCase().includes(k))
+  const rows = query.status === 'ALL' ? rows0 : rows0.filter((r) => progressOf(r.recordId) === query.status)
   rows.sort((a, b) => {
     const ta = new Date(a.viewedAt).getTime()
     const tb = new Date(b.viewedAt).getTime()
@@ -145,7 +153,16 @@ const toggleFav = (recordId: string) => {
           <el-option label="最近查看：新到旧" value="viewed_desc" />
           <el-option label="最近查看：旧到新" value="viewed_asc" />
         </el-select>
-        <div class="flex items-center justify-end">
+        <div class="flex items-center justify-end gap-2">
+          <el-select v-model="query.status" class="w-[160px]">
+            <el-option label="状态：全部" value="ALL" />
+            <el-option label="状态：未标记" value="NONE" />
+            <el-option :label="isCompany ? '状态：已邀约' : '状态：已投递'" value="APPLIED" />
+            <el-option label="状态：沟通中" value="CONTACTING" />
+            <el-option label="状态：面试中" value="INTERVIEW" />
+            <el-option label="状态：已通过" value="OFFER" />
+            <el-option label="状态：不合适" value="NOT_FIT" />
+          </el-select>
           <el-button v-if="tab === 'recommend'" :loading="loading" @click="load">刷新</el-button>
           <el-button v-else @click="tab = 'recommend'">去推荐列表</el-button>
         </div>

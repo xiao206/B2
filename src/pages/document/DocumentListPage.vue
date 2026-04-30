@@ -7,6 +7,7 @@ import type { DocStatus } from '@/types/document'
 import AppEmpty from '@/components/AppEmpty.vue'
 import { formatDateTime } from '@/utils/date'
 import { downloadCsv, downloadJson } from '@/utils/export'
+import { retryDocumentParse } from '@/api/document'
 
 const route = useRoute()
 const router = useRouter()
@@ -123,6 +124,44 @@ const exportResultsJson = () => {
   downloadJson(`doc-results-${Date.now()}.json`, payload)
 }
 
+const exportResultsCsv = () => {
+  const ids = currentIds.value
+  if (!ids.length) return ElMessage.warning('暂无可导出数据')
+  docsStore.hydrate()
+  const rows = ids.map((id) => {
+    const meta = docsStore.docs.find((d) => d.id === id)
+    const r = docsStore.results[id]?.resultJson
+    const obj = r && typeof r === 'object' ? (r as any) : null
+    const skills = Array.isArray(obj?.skills) ? obj.skills.filter((x: any) => typeof x === 'string').join('|') : ''
+    const eduCount = Array.isArray(obj?.education) ? obj.education.length : 0
+    const projCount = Array.isArray(obj?.projects) ? obj.projects.length : 0
+    return {
+      docId: id,
+      fileName: meta?.fileName ?? '',
+      status: meta?.status ?? '',
+      skills,
+      eduCount,
+      projCount,
+    }
+  })
+  downloadCsv(`doc-results-${Date.now()}.csv`, rows)
+}
+
+const batchRetry = async () => {
+  const ids = currentIds.value
+  if (!ids.length) return ElMessage.warning('暂无可重试数据')
+  docsStore.hydrate()
+  const failed = ids.filter((id) => docsStore.docs.find((d) => d.id === id)?.status === 'FAILED')
+  if (!failed.length) return ElMessage.warning('所选文档没有失败记录')
+  await ElMessageBox.confirm(`确认重试解析 ${failed.length} 条失败记录？`, '提示', { type: 'warning' })
+  const results = await Promise.allSettled(failed.map((id) => retryDocumentParse(id)))
+  docsStore.hydrate()
+  results.forEach((r, idx) => {
+    if (r.status === 'fulfilled') docsStore.updateStatus(failed[idx], String((r.value as any).status) as any)
+  })
+  ElMessage.success('已发起重试（状态将自动更新）')
+}
+
 const removeOne = async (id: string) => {
   await ElMessageBox.confirm('确认删除该文档记录？', '提示', { type: 'warning' })
   docsStore.hydrate()
@@ -161,6 +200,8 @@ const removeOne = async (id: string) => {
           <el-button @click="exportMetaJson">导出 JSON</el-button>
           <el-button @click="exportMetaCsv">导出 CSV</el-button>
           <el-button @click="exportResultsJson">导出结果</el-button>
+          <el-button @click="exportResultsCsv">结果 CSV</el-button>
+          <el-button type="warning" @click="batchRetry">批量重试</el-button>
           <el-button type="danger" @click="batchRemove">删除</el-button>
         </div>
       </div>

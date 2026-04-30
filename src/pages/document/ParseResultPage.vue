@@ -6,6 +6,7 @@ import { getParseResult } from '@/api/document'
 import type { ParseResultVO } from '@/types/document'
 import { useDocumentStore } from '@/stores/document'
 import AppEmpty from '@/components/AppEmpty.vue'
+import AppState from '@/components/AppState.vue'
 import { downloadCsv, downloadJson } from '@/utils/export'
 
 const route = useRoute()
@@ -18,6 +19,7 @@ const base = computed(() => (isCompany.value ? '/company' : '/person'))
 
 const loading = ref(true)
 const data = ref<ParseResultVO | null>(null)
+const error = ref('')
 
 const parsed = computed(() => {
   const v = data.value?.resultJson
@@ -42,6 +44,7 @@ const projects = computed<Array<{ name?: string; summary?: string }>>(() => {
 
 onMounted(async () => {
   loading.value = true
+  error.value = ''
   try {
     data.value = await getParseResult(docId.value)
     if (data.value) {
@@ -50,6 +53,7 @@ onMounted(async () => {
       docsStore.updateStatus(docId.value, data.value.status)
     }
   } catch (e: any) {
+    error.value = e?.message || '获取解析结果失败'
     ElMessage.error(e?.message || '获取解析结果失败')
   } finally {
     loading.value = false
@@ -119,7 +123,10 @@ const downloadEvidence = () => {
     </el-card>
 
     <el-card shadow="never">
-      <div v-if="loading" class="text-sm text-zinc-600">加载中...</div>
+      <AppState v-if="loading" state="loading" />
+      <AppState v-else-if="error" state="error" :description="error">
+        <el-button @click="router.push(`${base}/doc/task/${docId}`)">返回任务</el-button>
+      </AppState>
       <AppEmpty v-else-if="!data" description="暂无数据" />
       <div v-else class="space-y-4">
         <div v-if="data.status === 'FAILED' && data.errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
