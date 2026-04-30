@@ -156,155 +156,157 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="space-y-4">
-    <el-card shadow="never">
-      <div class="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div class="text-base font-semibold">匹配详情</div>
-          <div class="mt-1 text-sm text-zinc-600">RecordId：{{ recordId }}</div>
+  <div>
+    <div class="space-y-4">
+      <el-card shadow="never">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div class="text-base font-semibold">匹配详情</div>
+            <div class="mt-1 text-sm text-zinc-600">RecordId：{{ recordId }}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <el-button @click="router.push(`${base}/match/${isCompany ? 'candidates' : 'jobs'}`)">返回列表</el-button>
+            <el-button :type="favorite ? 'warning' : 'info'" @click="toggleFav">{{ favorite ? '已收藏' : '收藏' }}</el-button>
+            <el-button type="primary" @click="feedbackDlg = true">反馈</el-button>
+            <el-button :loading="loading" @click="load">刷新</el-button>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <el-button @click="router.push(`${base}/match/${isCompany ? 'candidates' : 'jobs'}`)">返回列表</el-button>
-          <el-button :type="favorite ? 'warning' : 'info'" @click="toggleFav">{{ favorite ? '已收藏' : '收藏' }}</el-button>
-          <el-button type="primary" @click="feedbackDlg = true">反馈</el-button>
-          <el-button :loading="loading" @click="load">刷新</el-button>
-        </div>
-      </div>
-    </el-card>
+      </el-card>
 
-    <el-card shadow="never">
-      <div v-if="loading" class="text-sm text-zinc-600">加载中...</div>
-      <div v-else-if="!detail" class="text-sm text-zinc-600">暂无数据</div>
-      <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div class="lg:col-span-1 space-y-4">
-          <div class="rounded-xl border border-zinc-200 bg-white p-4">
-            <div class="text-sm font-semibold text-zinc-700">总分</div>
-            <div class="mt-2 text-3xl font-semibold text-zinc-900">{{ detail.score }}</div>
-            <div class="mt-2">
-              <el-progress :percentage="detail.score" :stroke-width="10" />
+      <el-card shadow="never">
+        <div v-if="loading" class="text-sm text-zinc-600">加载中...</div>
+        <div v-else-if="!detail" class="text-sm text-zinc-600">暂无数据</div>
+        <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div class="lg:col-span-1 space-y-4">
+            <div class="rounded-xl border border-zinc-200 bg-white p-4">
+              <div class="text-sm font-semibold text-zinc-700">总分</div>
+              <div class="mt-2 text-3xl font-semibold text-zinc-900">{{ detail.score }}</div>
+              <div class="mt-2">
+                <el-progress :percentage="detail.score" :stroke-width="10" />
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-zinc-200 bg-white p-4">
+              <div class="text-sm font-semibold text-zinc-700">解释要点</div>
+              <ul class="mt-3 space-y-1 text-sm text-zinc-700">
+                <li v-for="(r, idx) in detail.rationales || []" :key="idx">{{ r }}</li>
+                <li v-if="(detail.rationales || []).length === 0" class="text-zinc-600">暂无</li>
+              </ul>
+            </div>
+
+            <div class="rounded-xl border border-zinc-200 bg-white p-4">
+              <div class="text-sm font-semibold text-zinc-700">缺失技能</div>
+              <div class="mt-3 space-y-2">
+                <div v-for="s in detail.missingSkills" :key="s.name" class="flex items-center justify-between">
+                  <div class="text-sm text-zinc-800">{{ s.name }}</div>
+                  <el-tag type="danger">差距 {{ s.gap }}</el-tag>
+                </div>
+                <div v-if="detail.missingSkills.length === 0" class="text-sm text-zinc-600">暂无</div>
+              </div>
             </div>
           </div>
 
-          <div class="rounded-xl border border-zinc-200 bg-white p-4">
-            <div class="text-sm font-semibold text-zinc-700">解释要点</div>
-            <ul class="mt-3 space-y-1 text-sm text-zinc-700">
-              <li v-for="(r, idx) in detail.rationales || []" :key="idx">{{ r }}</li>
-              <li v-if="(detail.rationales || []).length === 0" class="text-zinc-600">暂无</li>
-            </ul>
-          </div>
+          <div class="lg:col-span-2 space-y-4">
+            <RadarChart title="分项拆解（示例）" :indicators="indicators" :values="values" />
 
-          <div class="rounded-xl border border-zinc-200 bg-white p-4">
-            <div class="text-sm font-semibold text-zinc-700">缺失技能</div>
-            <div class="mt-3 space-y-2">
-              <div v-for="s in detail.missingSkills" :key="s.name" class="flex items-center justify-between">
-                <div class="text-sm text-zinc-800">{{ s.name }}</div>
-                <el-tag type="danger">差距 {{ s.gap }}</el-tag>
+            <el-card v-if="riasec" shadow="never">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-zinc-700">霍兰德 RIASEC（六维画像）</div>
+                  <div class="mt-1 text-xs text-zinc-500">
+                    个人主导：{{ riasecPersonTop }}；目标主导：{{ riasecTargetTop }}；相似度：{{ riasec.similarity }}%
+                  </div>
+                </div>
+                <el-tag :type="riasec.similarity >= 75 ? 'success' : riasec.similarity >= 60 ? 'warning' : 'danger'">
+                  {{ riasec.similarity >= 75 ? '较匹配' : riasec.similarity >= 60 ? '一般' : '偏低' }}
+                </el-tag>
               </div>
-              <div v-if="detail.missingSkills.length === 0" class="text-sm text-zinc-600">暂无</div>
-            </div>
+              <div class="mt-3">
+                <RiasecRadarChart
+                  title="RIASEC 雷达图"
+                  :person-values="riasecPersonValues"
+                  :target-values="riasecTargetValues"
+                  :labels="{ person: isCompany ? '候选人' : '你', target: isCompany ? '岗位' : '岗位' }"
+                />
+              </div>
+            </el-card>
+
+            <el-card shadow="never">
+              <div class="text-sm font-semibold text-zinc-700">技能覆盖</div>
+              <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div class="rounded-lg border border-zinc-200 bg-white p-3">
+                  <div class="text-xs text-zinc-500">已满足</div>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <el-tag v-for="s in detail.matchedSkills" :key="s.name" type="success">
+                      {{ s.name }}
+                    </el-tag>
+                    <div v-if="detail.matchedSkills.length === 0" class="text-sm text-zinc-600">暂无</div>
+                  </div>
+                </div>
+                <div class="rounded-lg border border-zinc-200 bg-white p-3">
+                  <div class="text-xs text-zinc-500">建议</div>
+                  <ul class="mt-2 space-y-1 text-sm text-zinc-700">
+                    <li v-for="(s, idx) in detail.suggestions || []" :key="idx">{{ s }}</li>
+                    <li v-if="(detail.suggestions || []).length === 0" class="text-zinc-600">暂无</li>
+                  </ul>
+                </div>
+              </div>
+            </el-card>
+
+            <el-card shadow="never">
+              <div class="text-sm font-semibold text-zinc-700">证据（示例）</div>
+              <div class="mt-3">
+                <el-table :data="detail.evidences || []" size="small">
+                  <el-table-column prop="type" label="类型" width="100" />
+                  <el-table-column prop="field" label="字段" width="140" />
+                  <el-table-column prop="weight" label="权重" width="90" />
+                  <el-table-column prop="snippet" label="内容" />
+                </el-table>
+              </div>
+            </el-card>
+
+            <el-card shadow="never">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-sm font-semibold text-zinc-700">你的反馈</div>
+                <el-button v-if="feedbackList.length" link type="danger" @click="clearFeedback">清空</el-button>
+              </div>
+              <div class="mt-3 space-y-2">
+                <div v-for="f in feedbackList" :key="f.id" class="rounded-lg border border-zinc-200 bg-white p-3">
+                  <div class="flex items-center justify-between">
+                    <el-rate :model-value="f.rating" disabled />
+                    <div class="text-xs text-zinc-500">{{ fmt(f.createdAt) }}</div>
+                  </div>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <el-tag v-for="t in f.tags" :key="t" type="info">{{ t }}</el-tag>
+                  </div>
+                  <div class="mt-2 text-sm text-zinc-700">{{ f.comment }}</div>
+                </div>
+                <div v-if="feedbackList.length === 0" class="text-sm text-zinc-600">暂无</div>
+              </div>
+            </el-card>
           </div>
         </div>
+      </el-card>
+    </div>
 
-        <div class="lg:col-span-2 space-y-4">
-          <RadarChart title="分项拆解（示例）" :indicators="indicators" :values="values" />
-
-          <el-card v-if="riasec" shadow="never">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <div class="text-sm font-semibold text-zinc-700">霍兰德 RIASEC（六维画像）</div>
-                <div class="mt-1 text-xs text-zinc-500">
-                  个人主导：{{ riasecPersonTop }}；目标主导：{{ riasecTargetTop }}；相似度：{{ riasec.similarity }}%
-                </div>
-              </div>
-              <el-tag :type="riasec.similarity >= 75 ? 'success' : riasec.similarity >= 60 ? 'warning' : 'danger'">
-                {{ riasec.similarity >= 75 ? '较匹配' : riasec.similarity >= 60 ? '一般' : '偏低' }}
-              </el-tag>
-            </div>
-            <div class="mt-3">
-              <RiasecRadarChart
-                title="RIASEC 雷达图"
-                :person-values="riasecPersonValues"
-                :target-values="riasecTargetValues"
-                :labels="{ person: isCompany ? '候选人' : '你', target: isCompany ? '岗位' : '岗位' }"
-              />
-            </div>
-          </el-card>
-
-          <el-card shadow="never">
-            <div class="text-sm font-semibold text-zinc-700">技能覆盖</div>
-            <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div class="rounded-lg border border-zinc-200 bg-white p-3">
-                <div class="text-xs text-zinc-500">已满足</div>
-                <div class="mt-2 flex flex-wrap gap-2">
-                  <el-tag v-for="s in detail.matchedSkills" :key="s.name" type="success">
-                    {{ s.name }}
-                  </el-tag>
-                  <div v-if="detail.matchedSkills.length === 0" class="text-sm text-zinc-600">暂无</div>
-                </div>
-              </div>
-              <div class="rounded-lg border border-zinc-200 bg-white p-3">
-                <div class="text-xs text-zinc-500">建议</div>
-                <ul class="mt-2 space-y-1 text-sm text-zinc-700">
-                  <li v-for="(s, idx) in detail.suggestions || []" :key="idx">{{ s }}</li>
-                  <li v-if="(detail.suggestions || []).length === 0" class="text-zinc-600">暂无</li>
-                </ul>
-              </div>
-            </div>
-          </el-card>
-
-          <el-card shadow="never">
-            <div class="text-sm font-semibold text-zinc-700">证据（示例）</div>
-            <div class="mt-3">
-              <el-table :data="detail.evidences || []" size="small">
-                <el-table-column prop="type" label="类型" width="100" />
-                <el-table-column prop="field" label="字段" width="140" />
-                <el-table-column prop="weight" label="权重" width="90" />
-                <el-table-column prop="snippet" label="内容" />
-              </el-table>
-            </div>
-          </el-card>
-
-          <el-card shadow="never">
-            <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-semibold text-zinc-700">你的反馈</div>
-              <el-button v-if="feedbackList.length" link type="danger" @click="clearFeedback">清空</el-button>
-            </div>
-            <div class="mt-3 space-y-2">
-              <div v-for="f in feedbackList" :key="f.id" class="rounded-lg border border-zinc-200 bg-white p-3">
-                <div class="flex items-center justify-between">
-                  <el-rate :model-value="f.rating" disabled />
-                  <div class="text-xs text-zinc-500">{{ fmt(f.createdAt) }}</div>
-                </div>
-                <div class="mt-2 flex flex-wrap gap-2">
-                  <el-tag v-for="t in f.tags" :key="t" type="info">{{ t }}</el-tag>
-                </div>
-                <div class="mt-2 text-sm text-zinc-700">{{ f.comment }}</div>
-              </div>
-              <div v-if="feedbackList.length === 0" class="text-sm text-zinc-600">暂无</div>
-            </div>
-          </el-card>
-        </div>
-      </div>
-    </el-card>
+    <el-dialog v-model="feedbackDlg" title="提交反馈" width="560px">
+      <el-form label-position="top">
+        <el-form-item label="满意度">
+          <el-rate v-model="feedbackForm.rating" />
+        </el-form-item>
+        <el-form-item label="标签">
+          <el-checkbox-group v-model="feedbackForm.tags">
+            <el-checkbox v-for="t in feedbackTags" :key="t.value" :label="t.value">{{ t.label }}</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item label="说明">
+          <el-input v-model="feedbackForm.comment" type="textarea" :rows="4" placeholder="说明你认为不准确/不合理的原因，便于后续优化。" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="feedbackDlg = false">取消</el-button>
+        <el-button type="primary" @click="submitFeedback">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
-
-  <el-dialog v-model="feedbackDlg" title="提交反馈" width="560px">
-    <el-form label-position="top">
-      <el-form-item label="满意度">
-        <el-rate v-model="feedbackForm.rating" />
-      </el-form-item>
-      <el-form-item label="标签">
-        <el-checkbox-group v-model="feedbackForm.tags">
-          <el-checkbox v-for="t in feedbackTags" :key="t.value" :label="t.value">{{ t.label }}</el-checkbox>
-        </el-checkbox-group>
-      </el-form-item>
-      <el-form-item label="说明">
-        <el-input v-model="feedbackForm.comment" type="textarea" :rows="4" placeholder="说明你认为不准确/不合理的原因，便于后续优化。" />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="feedbackDlg = false">取消</el-button>
-      <el-button type="primary" @click="submitFeedback">提交</el-button>
-    </template>
-  </el-dialog>
 </template>
