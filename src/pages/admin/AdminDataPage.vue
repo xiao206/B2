@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useAdminDataStore, type SkillRow, type SynonymRow } from '@/stores/adminData'
+import { PERMISSIONS } from '@/constants/permissions'
 
 const store = useAdminDataStore()
 
@@ -101,7 +102,7 @@ const synonymOk = computed(() => Boolean(synonymForm.term.trim()) && Boolean(syn
         <el-card shadow="never">
           <div class="flex items-center justify-between gap-3">
             <div class="text-sm text-zinc-600">用于能力图谱/匹配解释中的标准技能字典。</div>
-            <el-button v-permission="'ADMIN_DATA_VIEW'" type="primary" @click="openSkillCreate">新增技能</el-button>
+            <el-button v-permission="PERMISSIONS.ADMIN_DATA_VIEW" type="primary" @click="openSkillCreate">新增技能</el-button>
           </div>
           <div class="mt-4">
             <el-table :data="store.skills">
@@ -109,8 +110,8 @@ const synonymOk = computed(() => Boolean(synonymForm.term.trim()) && Boolean(syn
               <el-table-column prop="category" label="分类" width="160" />
               <el-table-column label="操作" width="180" fixed="right">
                 <template #default="{ row }">
-                  <el-button v-permission="'ADMIN_DATA_VIEW'" link type="primary" @click="openSkillEdit(row)">编辑</el-button>
-                  <el-button v-permission="'ADMIN_DATA_VIEW'" link type="danger" @click="removeSkill(row)">删除</el-button>
+                  <el-button v-permission="PERMISSIONS.ADMIN_DATA_VIEW" link type="primary" @click="openSkillEdit(row)">编辑</el-button>
+                  <el-button v-permission="PERMISSIONS.ADMIN_DATA_VIEW" link type="danger" @click="removeSkill(row)">删除</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -122,7 +123,7 @@ const synonymOk = computed(() => Boolean(synonymForm.term.trim()) && Boolean(syn
         <el-card shadow="never">
           <div class="flex items-center justify-between gap-3">
             <div class="text-sm text-zinc-600">用于解析与匹配阶段的词汇归一（示例）。</div>
-            <el-button v-permission="'ADMIN_DATA_VIEW'" type="primary" @click="openSynonymCreate">新增同义词</el-button>
+            <el-button v-permission="PERMISSIONS.ADMIN_DATA_VIEW" type="primary" @click="openSynonymCreate">新增同义词</el-button>
           </div>
           <div class="mt-4">
             <el-table :data="store.synonyms">
@@ -136,8 +137,8 @@ const synonymOk = computed(() => Boolean(synonymForm.term.trim()) && Boolean(syn
               </el-table-column>
               <el-table-column label="操作" width="180" fixed="right">
                 <template #default="{ row }">
-                  <el-button v-permission="'ADMIN_DATA_VIEW'" link type="primary" @click="openSynonymEdit(row)">编辑</el-button>
-                  <el-button v-permission="'ADMIN_DATA_VIEW'" link type="danger" @click="removeSynonym(row)">删除</el-button>
+                  <el-button v-permission="PERMISSIONS.ADMIN_DATA_VIEW" link type="primary" @click="openSynonymEdit(row)">编辑</el-button>
+                  <el-button v-permission="PERMISSIONS.ADMIN_DATA_VIEW" link type="danger" @click="removeSynonym(row)">删除</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -177,4 +178,3 @@ const synonymOk = computed(() => Boolean(synonymForm.term.trim()) && Boolean(syn
     </el-dialog>
   </div>
 </template>
-

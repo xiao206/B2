@@ -5,6 +5,7 @@ import { useDocumentStore } from '@/stores/document'
 import { getParseResult } from '@/api/document'
 import type { ParseResultVO } from '@/types/document'
 import { downloadCsv, downloadJson } from '@/utils/export'
+import { PERMISSIONS } from '@/constants/permissions'
 
 const docsStore = useDocumentStore()
 const drawerOpen = ref(false)
@@ -102,8 +103,8 @@ const exportCsv = () => {
           <el-option label="FAILED" value="FAILED" />
         </el-select>
         <div class="flex items-center justify-end">
-          <el-button v-permission="'ADMIN_DOCS_VIEW'" @click="exportJson">导出 JSON</el-button>
-          <el-button v-permission="'ADMIN_DOCS_VIEW'" type="primary" @click="exportCsv">导出 CSV</el-button>
+          <el-button v-permission="PERMISSIONS.ADMIN_DOCS_VIEW" @click="exportJson">导出 JSON</el-button>
+          <el-button v-permission="PERMISSIONS.ADMIN_DOCS_VIEW" type="primary" @click="exportCsv">导出 CSV</el-button>
         </div>
       </div>
 
@@ -115,10 +116,10 @@ const exportCsv = () => {
         <el-table-column prop="status" label="状态" width="140" />
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button v-permission="'ADMIN_DOCS_VIEW'" link type="primary" :disabled="row.status !== 'DONE'" @click="openResult(row.id)">
+            <el-button v-permission="PERMISSIONS.ADMIN_DOCS_VIEW" link type="primary" :disabled="row.status !== 'DONE'" @click="openResult(row.id)">
               查看结果
             </el-button>
-            <el-button v-permission="'ADMIN_DOCS_VIEW'" link type="danger" @click="removeDoc(row.id)">删除</el-button>
+            <el-button v-permission="PERMISSIONS.ADMIN_DOCS_VIEW" link type="danger" @click="removeDoc(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

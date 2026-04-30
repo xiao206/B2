@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { getDataStorage } from '@/utils/storage'
 import { useAuthStore } from '@/stores/auth'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
 export type AuditResult = 'OK' | 'FAIL'
 
@@ -17,8 +18,6 @@ export interface AuditState {
   logs: AuditLogRow[]
 }
 
-const STORAGE_KEY = 'aimap.audit'
-
 const getUserKey = () => {
   const auth = useAuthStore()
   return `${auth.userType ?? 'ANON'}:${auth.userId || 'anon'}`
@@ -31,17 +30,17 @@ export const useAuditStore = defineStore('audit', {
   actions: {
     hydrate() {
       const storage = getDataStorage()
-      const raw = storage.getItem(STORAGE_KEY)
+      const raw = storage.getItem(STORAGE_KEYS.AUDIT)
       if (!raw) return
       try {
         const data = JSON.parse(raw) as Partial<AuditState>
         this.logs = Array.isArray(data.logs) ? (data.logs as AuditLogRow[]) : []
       } catch {
-        storage.removeItem(STORAGE_KEY)
+        storage.removeItem(STORAGE_KEYS.AUDIT)
       }
     },
     persist() {
-      getDataStorage().setItem(STORAGE_KEY, JSON.stringify({ logs: this.logs }))
+      getDataStorage().setItem(STORAGE_KEYS.AUDIT, JSON.stringify({ logs: this.logs }))
     },
     add(payload: { module: string; result: AuditResult; detail?: Record<string, unknown>; userKey?: string }) {
       const row: AuditLogRow = {
@@ -63,4 +62,3 @@ export const useAuditStore = defineStore('audit', {
     },
   },
 })
-

@@ -3,6 +3,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAdminUsersStore, type AdminUserRow, type AdminUserStatus, type AdminUserType } from '@/stores/adminUsers'
 import { downloadCsv, downloadJson } from '@/utils/export'
+import { formatDateTime } from '@/utils/date'
+import { PERMISSIONS } from '@/constants/permissions'
 
 const store = useAdminUsersStore()
 
@@ -94,12 +96,6 @@ const exportCsv = () => {
   )
 }
 
-const fmt = (iso?: string) => {
-  if (!iso) return '-'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString()
-}
 </script>
 
 <template>
@@ -126,9 +122,9 @@ const fmt = (iso?: string) => {
           <el-option label="禁用" value="DISABLED" />
         </el-select>
         <div class="flex items-center justify-end">
-          <el-button v-permission="'ADMIN_USERS_VIEW'" type="primary" @click="openCreate">新增用户</el-button>
-          <el-button v-permission="'ADMIN_USERS_VIEW'" @click="exportJson">导出 JSON</el-button>
-          <el-button v-permission="'ADMIN_USERS_VIEW'" @click="exportCsv">导出 CSV</el-button>
+          <el-button v-permission="PERMISSIONS.ADMIN_USERS_VIEW" type="primary" @click="openCreate">新增用户</el-button>
+          <el-button v-permission="PERMISSIONS.ADMIN_USERS_VIEW" @click="exportJson">导出 JSON</el-button>
+          <el-button v-permission="PERMISSIONS.ADMIN_USERS_VIEW" @click="exportCsv">导出 CSV</el-button>
         </div>
       </div>
 
@@ -144,22 +140,22 @@ const fmt = (iso?: string) => {
           </el-table-column>
           <el-table-column prop="createdAt" label="创建时间" width="200">
             <template #default="{ row }">
-              <span class="text-xs text-zinc-600">{{ fmt(row.createdAt) }}</span>
+              <span class="text-xs text-zinc-600">{{ formatDateTime(row.createdAt) }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="lastLoginAt" label="最近登录" width="200">
             <template #default="{ row }">
-              <span class="text-xs text-zinc-600">{{ fmt(row.lastLoginAt) }}</span>
+              <span class="text-xs text-zinc-600">{{ formatDateTime(row.lastLoginAt) }}</span>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="260" fixed="right">
             <template #default="{ row }">
-              <el-button v-permission="'ADMIN_USERS_VIEW'" link type="primary" @click="openEdit(row)">编辑</el-button>
-              <el-button v-permission="'ADMIN_USERS_VIEW'" link :type="row.status === 'ACTIVE' ? 'warning' : 'success'" @click="toggleStatus(row)">
+              <el-button v-permission="PERMISSIONS.ADMIN_USERS_VIEW" link type="primary" @click="openEdit(row)">编辑</el-button>
+              <el-button v-permission="PERMISSIONS.ADMIN_USERS_VIEW" link :type="row.status === 'ACTIVE' ? 'warning' : 'success'" @click="toggleStatus(row)">
                 {{ row.status === 'ACTIVE' ? '禁用' : '启用' }}
               </el-button>
-              <el-button v-permission="'ADMIN_USERS_VIEW'" link type="info" @click="resetPassword(row)">重置密码</el-button>
-              <el-button v-permission="'ADMIN_USERS_VIEW'" link type="danger" @click="remove(row)">删除</el-button>
+              <el-button v-permission="PERMISSIONS.ADMIN_USERS_VIEW" link type="info" @click="resetPassword(row)">重置密码</el-button>
+              <el-button v-permission="PERMISSIONS.ADMIN_USERS_VIEW" link type="danger" @click="remove(row)">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -187,7 +183,7 @@ const fmt = (iso?: string) => {
       </el-form>
       <template #footer>
         <el-button @click="dlgOpen = false">取消</el-button>
-        <el-button v-permission="'ADMIN_USERS_VIEW'" type="primary" @click="save">保存</el-button>
+        <el-button v-permission="PERMISSIONS.ADMIN_USERS_VIEW" type="primary" @click="save">保存</el-button>
       </template>
     </el-dialog>
   </div>

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { getDataStorage } from '@/utils/storage'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
 export interface SkillRow {
   id: string
@@ -18,8 +19,6 @@ export interface AdminDataState {
   synonyms: SynonymRow[]
 }
 
-const STORAGE_KEY = 'aimap.admin.data'
-
 export const useAdminDataStore = defineStore('adminData', {
   state: (): AdminDataState => ({
     skills: [],
@@ -28,7 +27,7 @@ export const useAdminDataStore = defineStore('adminData', {
   actions: {
     hydrate() {
       const storage = getDataStorage()
-      const raw = storage.getItem(STORAGE_KEY)
+      const raw = storage.getItem(STORAGE_KEYS.ADMIN_DATA)
       if (!raw) {
         this.skills = [
           { id: 'sk-001', name: 'Vue 3', category: '前端' },
@@ -47,13 +46,13 @@ export const useAdminDataStore = defineStore('adminData', {
         this.skills = Array.isArray(data.skills) ? (data.skills as SkillRow[]) : []
         this.synonyms = Array.isArray(data.synonyms) ? (data.synonyms as SynonymRow[]) : []
       } catch {
-        storage.removeItem(STORAGE_KEY)
+        storage.removeItem(STORAGE_KEYS.ADMIN_DATA)
       }
     },
     persist() {
       const storage = getDataStorage()
       storage.setItem(
-        STORAGE_KEY,
+        STORAGE_KEYS.ADMIN_DATA,
         JSON.stringify({
           skills: this.skills,
           synonyms: this.synonyms,

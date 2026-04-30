@@ -2,14 +2,13 @@ import { defineStore } from 'pinia'
 import { getDataStorage } from '@/utils/storage'
 import type { MatchFeedback, MatchHistoryItem, MatchListItem } from '@/types/match'
 import { useAuthStore } from '@/stores/auth'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
 export interface MatchState {
   favorites: Record<string, string[]>
   history: MatchHistoryItem[]
   feedbacks: MatchFeedback[]
 }
-
-const STORAGE_KEY = 'aimap.match'
 
 const getUserKey = () => {
   const auth = useAuthStore()
@@ -31,7 +30,7 @@ export const useMatchStore = defineStore('match', {
   actions: {
     hydrate() {
       const storage = getDataStorage()
-      const raw = storage.getItem(STORAGE_KEY)
+      const raw = storage.getItem(STORAGE_KEYS.MATCH)
       if (!raw) return
       try {
         const data = JSON.parse(raw) as Partial<MatchState>
@@ -39,13 +38,13 @@ export const useMatchStore = defineStore('match', {
         this.history = Array.isArray(data.history) ? (data.history as MatchHistoryItem[]) : []
         this.feedbacks = Array.isArray(data.feedbacks) ? (data.feedbacks as MatchFeedback[]) : []
       } catch {
-        storage.removeItem(STORAGE_KEY)
+        storage.removeItem(STORAGE_KEYS.MATCH)
       }
     },
     persist() {
       const storage = getDataStorage()
       storage.setItem(
-        STORAGE_KEY,
+        STORAGE_KEYS.MATCH,
         JSON.stringify({
           favorites: this.favorites,
           history: this.history,
@@ -94,4 +93,3 @@ export const useMatchStore = defineStore('match', {
     },
   },
 })
-

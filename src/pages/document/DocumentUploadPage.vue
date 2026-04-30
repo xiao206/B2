@@ -5,12 +5,13 @@ import { ElMessage } from 'element-plus'
 import { uploadDocument } from '@/api/document'
 import type { DocType } from '@/types/document'
 import { useDocumentStore } from '@/stores/document'
-import { useAuditStore } from '@/stores/audit'
+import { useAuditLogger } from '@/composables/useAuditLogger'
+import { AUDIT_MODULES } from '@/constants/auditModules'
 
 const route = useRoute()
 const router = useRouter()
 const docsStore = useDocumentStore()
-const audit = useAuditStore()
+const audit = useAuditLogger()
 
 const isCompany = computed(() => route.path.startsWith('/company'))
 const docType = computed<DocType>(() => (isCompany.value ? 'JOB_DESC' : 'RESUME'))
@@ -53,12 +54,7 @@ const submit = async () => {
   loading.value = true
   try {
     const { docId } = await uploadDocument({ file: file.value, docType: docType.value })
-    audit.hydrate()
-    audit.add({
-      module: 'document.upload',
-      result: 'OK',
-      detail: { docId, docType: docType.value, fileName: file.value.name, size: file.value.size },
-    })
+    audit.logOk(AUDIT_MODULES.DOCUMENT_UPLOAD, { docId, docType: docType.value, fileName: file.value.name, size: file.value.size })
     docsStore.hydrate()
     docsStore.addDoc({
       id: docId,
@@ -72,12 +68,7 @@ const submit = async () => {
     const base = isCompany.value ? '/company' : '/person'
     await router.push(`${base}/doc/task/${encodeURIComponent(docId)}`)
   } catch (e: any) {
-    audit.hydrate()
-    audit.add({
-      module: 'document.upload',
-      result: 'FAIL',
-      detail: { docType: docType.value, fileName: file.value?.name, message: e?.message || '上传失败' },
-    })
+    audit.logFail(AUDIT_MODULES.DOCUMENT_UPLOAD, { docType: docType.value, fileName: file.value?.name, message: e?.message || '上传失败' })
     ElMessage.error(e?.message || '上传失败')
   } finally {
     loading.value = false

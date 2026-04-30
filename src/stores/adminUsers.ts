@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { getDataStorage } from '@/utils/storage'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
 export type AdminUserType = 'PERSON' | 'COMPANY' | 'ADMIN'
 export type AdminUserStatus = 'ACTIVE' | 'DISABLED'
@@ -17,8 +18,6 @@ export interface AdminUsersState {
   users: AdminUserRow[]
 }
 
-const STORAGE_KEY = 'aimap.admin.users'
-
 export const useAdminUsersStore = defineStore('adminUsers', {
   state: (): AdminUsersState => ({
     users: [],
@@ -26,7 +25,7 @@ export const useAdminUsersStore = defineStore('adminUsers', {
   actions: {
     hydrate() {
       const storage = getDataStorage()
-      const raw = storage.getItem(STORAGE_KEY)
+      const raw = storage.getItem(STORAGE_KEYS.ADMIN_USERS)
       if (!raw) {
         const now = new Date().toISOString()
         this.users = [
@@ -41,11 +40,11 @@ export const useAdminUsersStore = defineStore('adminUsers', {
         const data = JSON.parse(raw) as Partial<AdminUsersState>
         this.users = Array.isArray(data.users) ? (data.users as AdminUserRow[]) : []
       } catch {
-        storage.removeItem(STORAGE_KEY)
+        storage.removeItem(STORAGE_KEYS.ADMIN_USERS)
       }
     },
     persist() {
-      getDataStorage().setItem(STORAGE_KEY, JSON.stringify({ users: this.users }))
+      getDataStorage().setItem(STORAGE_KEYS.ADMIN_USERS, JSON.stringify({ users: this.users }))
     },
     upsert(user: Omit<AdminUserRow, 'id' | 'createdAt'> & Partial<Pick<AdminUserRow, 'id' | 'createdAt'>>) {
       const id = user.id || `u-${Date.now()}`
@@ -76,4 +75,3 @@ export const useAdminUsersStore = defineStore('adminUsers', {
     },
   },
 })
-

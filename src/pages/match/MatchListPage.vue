@@ -6,14 +6,16 @@ import { recommendCandidates, recommendJobs } from '@/api/match'
 import type { MatchListItem } from '@/types/match'
 import { useMatchStore } from '@/stores/match'
 import { useAuthStore } from '@/stores/auth'
-import { useAuditStore } from '@/stores/audit'
+import { useAuditLogger } from '@/composables/useAuditLogger'
+import { AUDIT_MODULES } from '@/constants/auditModules'
+import { formatDateTime } from '@/utils/date'
 import AppEmpty from '@/components/AppEmpty.vue'
 
 const route = useRoute()
 const router = useRouter()
 const matchStore = useMatchStore()
 const auth = useAuthStore()
-const audit = useAuditStore()
+const audit = useAuditLogger()
 
 const isCompany = computed(() => route.path.startsWith('/company'))
 const title = computed(() => (isCompany.value ? '候选人推荐' : '职位推荐'))
@@ -38,29 +40,13 @@ const favoriteList = computed(() => {
   return Array.from(merged.values())
 })
 
-const fmt = (iso: string) => {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString()
-}
-
 const load = async () => {
   loading.value = true
   try {
     list.value = isCompany.value ? await recommendCandidates() : await recommendJobs()
-    audit.hydrate()
-    audit.add({
-      module: 'match.recommend',
-      result: 'OK',
-      detail: { side: isCompany.value ? 'COMPANY' : 'PERSON', count: list.value.length },
-    })
+    audit.logOk(AUDIT_MODULES.MATCH_RECOMMEND, { side: isCompany.value ? 'COMPANY' : 'PERSON', count: list.value.length })
   } catch (e: any) {
-    audit.hydrate()
-    audit.add({
-      module: 'match.recommend',
-      result: 'FAIL',
-      detail: { side: isCompany.value ? 'COMPANY' : 'PERSON', message: e?.message || '加载推荐失败' },
-    })
+    audit.logFail(AUDIT_MODULES.MATCH_RECOMMEND, { side: isCompany.value ? 'COMPANY' : 'PERSON', message: e?.message || '加载推荐失败' })
     ElMessage.error(e?.message || '加载推荐失败')
   } finally {
     loading.value = false
@@ -75,19 +61,13 @@ onMounted(() => {
 const openDetail = (row: MatchListItem) => {
   const base = isCompany.value ? '/company' : '/person'
   matchStore.addHistory(row, isCompany.value ? 'COMPANY' : 'PERSON')
-  audit.hydrate()
-  audit.add({
-    module: 'match.detail.open',
-    result: 'OK',
-    detail: { side: isCompany.value ? 'COMPANY' : 'PERSON', recordId: row.recordId },
-  })
+  audit.logOk(AUDIT_MODULES.MATCH_DETAIL_OPEN, { side: isCompany.value ? 'COMPANY' : 'PERSON', recordId: row.recordId })
   router.push(`${base}/match/detail/${encodeURIComponent(row.recordId)}`)
 }
 
 const toggleFav = (recordId: string) => {
   matchStore.toggleFavorite(recordId)
-  audit.hydrate()
-  audit.add({ module: 'match.favorite.toggle', result: 'OK', detail: { recordId } })
+  audit.logOk(AUDIT_MODULES.MATCH_FAVORITE_TOGGLE, { recordId })
 }
 </script>
 
@@ -171,7 +151,7 @@ const toggleFav = (recordId: string) => {
         </el-table-column>
         <el-table-column prop="viewedAt" label="最近查看" width="200">
           <template #default="{ row }">
-            <span class="text-xs text-zinc-600">{{ fmt(row.viewedAt) }}</span>
+            <span class="text-xs text-zinc-600">{{ formatDateTime(row.viewedAt) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">

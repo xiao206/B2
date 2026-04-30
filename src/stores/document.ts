@@ -1,13 +1,12 @@
 import { defineStore } from 'pinia'
 import type { DocFileVO, DocStatus, ParseResultVO } from '@/types/document'
 import { getDataStorage } from '@/utils/storage'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
 export interface DocumentState {
   docs: DocFileVO[]
   results: Record<string, ParseResultVO>
 }
-
-const STORAGE_KEY = 'aimap.docs'
 
 export const useDocumentStore = defineStore('document', {
   state: (): DocumentState => ({
@@ -17,20 +16,20 @@ export const useDocumentStore = defineStore('document', {
   actions: {
     hydrate() {
       const storage = getDataStorage()
-      const raw = storage.getItem(STORAGE_KEY)
+      const raw = storage.getItem(STORAGE_KEYS.DOCS)
       if (!raw) return
       try {
         const data = JSON.parse(raw) as Partial<DocumentState>
         this.docs = Array.isArray(data.docs) ? (data.docs as DocFileVO[]) : []
         this.results = data.results && typeof data.results === 'object' ? (data.results as Record<string, ParseResultVO>) : {}
       } catch {
-        storage.removeItem(STORAGE_KEY)
+        storage.removeItem(STORAGE_KEYS.DOCS)
       }
     },
     persist() {
       const storage = getDataStorage()
       storage.setItem(
-        STORAGE_KEY,
+        STORAGE_KEYS.DOCS,
         JSON.stringify({
           docs: this.docs,
           results: this.results,

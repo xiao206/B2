@@ -4,6 +4,8 @@ import { ElMessageBox } from 'element-plus'
 import { useAuditStore, type AuditLogRow } from '@/stores/audit'
 import { downloadCsv, downloadJson } from '@/utils/export'
 import { maskUserKey } from '@/utils/mask'
+import { formatDateTime } from '@/utils/date'
+import { PERMISSIONS } from '@/constants/permissions'
 
 const store = useAuditStore()
 
@@ -30,12 +32,6 @@ const current = ref<AuditLogRow | null>(null)
 const openDetail = (row: AuditLogRow) => {
   current.value = row
   drawerOpen.value = true
-}
-
-const fmt = (iso: string) => {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString()
 }
 
 const exportJson = () => {
@@ -82,9 +78,9 @@ const clearAll = async () => {
             <el-option label="FAIL" value="FAIL" />
           </el-select>
           <div class="flex items-center justify-end">
-            <el-button v-permission="'ADMIN_AUDIT_VIEW'" @click="exportJson">导出 JSON</el-button>
-            <el-button v-permission="'ADMIN_AUDIT_VIEW'" @click="exportCsv">导出 CSV</el-button>
-            <el-button v-permission="'ADMIN_AUDIT_VIEW'" type="danger" @click="clearAll">清空</el-button>
+            <el-button v-permission="PERMISSIONS.ADMIN_AUDIT_VIEW" @click="exportJson">导出 JSON</el-button>
+            <el-button v-permission="PERMISSIONS.ADMIN_AUDIT_VIEW" @click="exportCsv">导出 CSV</el-button>
+            <el-button v-permission="PERMISSIONS.ADMIN_AUDIT_VIEW" type="danger" @click="clearAll">清空</el-button>
           </div>
         </div>
       </el-card>
@@ -93,7 +89,7 @@ const clearAll = async () => {
         <el-table :data="list">
           <el-table-column prop="time" label="时间" width="200">
             <template #default="{ row }">
-              <span class="text-xs text-zinc-600">{{ fmt(row.time) }}</span>
+              <span class="text-xs text-zinc-600">{{ formatDateTime(row.time) }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="userKey" label="用户" width="200">
@@ -109,7 +105,7 @@ const clearAll = async () => {
           </el-table-column>
           <el-table-column label="操作" width="120" fixed="right">
             <template #default="{ row }">
-              <el-button v-permission="'ADMIN_AUDIT_VIEW'" link type="primary" @click="openDetail(row)">详情</el-button>
+              <el-button v-permission="PERMISSIONS.ADMIN_AUDIT_VIEW" link type="primary" @click="openDetail(row)">详情</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -120,7 +116,7 @@ const clearAll = async () => {
       <div v-if="!current" class="text-sm text-zinc-600">暂无</div>
       <div v-else class="space-y-3">
         <el-descriptions :column="1" border>
-          <el-descriptions-item label="时间">{{ fmt(current.time) }}</el-descriptions-item>
+          <el-descriptions-item label="时间">{{ formatDateTime(current.time) }}</el-descriptions-item>
           <el-descriptions-item label="用户">{{ maskUserKey(current.userKey) }}</el-descriptions-item>
           <el-descriptions-item label="模块">{{ current.module }}</el-descriptions-item>
           <el-descriptions-item label="结果">{{ current.result }}</el-descriptions-item>

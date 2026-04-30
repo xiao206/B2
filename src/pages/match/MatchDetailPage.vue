@@ -8,13 +8,15 @@ import { getMatchDetail } from '@/api/match'
 import type { MatchDetailVO } from '@/types/match'
 import { useMatchStore } from '@/stores/match'
 import { useAuthStore } from '@/stores/auth'
-import { useAuditStore } from '@/stores/audit'
+import { useAuditLogger } from '@/composables/useAuditLogger'
+import { AUDIT_MODULES } from '@/constants/auditModules'
+import { formatDateTime } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
 const matchStore = useMatchStore()
 const auth = useAuthStore()
-const audit = useAuditStore()
+const audit = useAuditLogger()
 
 const recordId = computed(() => String(route.params.recordId || ''))
 const isCompany = computed(() => route.path.startsWith('/company'))
@@ -86,12 +88,6 @@ const feedbackTags = [
   { label: '建议不合理', value: 'SUGGESTION_BAD' },
 ]
 
-const fmt = (iso: string) => {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString()
-}
-
 const submitFeedback = async () => {
   if (!feedbackForm.comment.trim()) return ElMessage.warning('请填写反馈说明')
   matchStore.addFeedback({
@@ -100,12 +96,7 @@ const submitFeedback = async () => {
     tags: feedbackForm.tags,
     comment: feedbackForm.comment.trim(),
   })
-  audit.hydrate()
-  audit.add({
-    module: 'match.feedback',
-    result: 'OK',
-    detail: { recordId: recordId.value, rating: feedbackForm.rating, tags: feedbackForm.tags },
-  })
+  audit.logOk(AUDIT_MODULES.MATCH_FEEDBACK, { recordId: recordId.value, rating: feedbackForm.rating, tags: feedbackForm.tags })
   feedbackDlg.value = false
   feedbackForm.rating = 5
   feedbackForm.tags = []
@@ -139,8 +130,7 @@ const load = async () => {
 
 const toggleFav = () => {
   matchStore.toggleFavorite(recordId.value)
-  audit.hydrate()
-  audit.add({ module: 'match.favorite.toggle', result: 'OK', detail: { recordId: recordId.value } })
+  audit.logOk(AUDIT_MODULES.MATCH_FAVORITE_TOGGLE, { recordId: recordId.value })
 }
 
 const clearFeedback = async () => {
@@ -148,8 +138,7 @@ const clearFeedback = async () => {
   matchStore.hydrate()
   matchStore.feedbacks = matchStore.feedbacks.filter((f) => !(f.userKey === userKey.value && f.recordId === recordId.value))
   matchStore.persist()
-  audit.hydrate()
-  audit.add({ module: 'match.feedback.clear', result: 'OK', detail: { recordId: recordId.value } })
+  audit.logOk(AUDIT_MODULES.MATCH_FEEDBACK_CLEAR, { recordId: recordId.value })
 }
 
 onMounted(load)
@@ -274,7 +263,7 @@ onMounted(load)
                 <div v-for="f in feedbackList" :key="f.id" class="rounded-lg border border-zinc-200 bg-white p-3">
                   <div class="flex items-center justify-between">
                     <el-rate :model-value="f.rating" disabled />
-                    <div class="text-xs text-zinc-500">{{ fmt(f.createdAt) }}</div>
+                    <div class="text-xs text-zinc-500">{{ formatDateTime(f.createdAt) }}</div>
                   </div>
                   <div class="mt-2 flex flex-wrap gap-2">
                     <el-tag v-for="t in f.tags" :key="t" type="info">{{ t }}</el-tag>

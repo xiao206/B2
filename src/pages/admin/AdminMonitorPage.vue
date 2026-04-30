@@ -2,6 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuditStore } from '@/stores/audit'
 import { useDocumentStore } from '@/stores/document'
+import { PERMISSIONS } from '@/constants/permissions'
+import { AUDIT_MODULES } from '@/constants/auditModules'
 
 const audit = useAuditStore()
 const docs = useDocumentStore()
@@ -20,8 +22,8 @@ onMounted(() => {
 
 const within24h = computed(() => now.value - 24 * 3600 * 1000)
 
-const parseLogs = computed(() => audit.logs.filter((x) => x.module === 'document.parse' && new Date(x.time).getTime() >= within24h.value))
-const matchLogs = computed(() => audit.logs.filter((x) => x.module === 'match.recommend' && new Date(x.time).getTime() >= within24h.value))
+const parseLogs = computed(() => audit.logs.filter((x) => x.module === AUDIT_MODULES.DOCUMENT_PARSE && new Date(x.time).getTime() >= within24h.value))
+const matchLogs = computed(() => audit.logs.filter((x) => x.module === AUDIT_MODULES.MATCH_RECOMMEND && new Date(x.time).getTime() >= within24h.value))
 
 const parseSuccessRate = computed(() => {
   const total = parseLogs.value.length
@@ -50,7 +52,7 @@ const stats = computed(() => [
           <div class="text-base font-semibold">运营监控</div>
           <div class="mt-1 text-sm text-zinc-600">监控聚合接口可对齐 /admin/monitor/summary（占位）。</div>
         </div>
-        <el-button v-permission="'ADMIN_MONITOR_VIEW'">刷新</el-button>
+        <el-button v-permission="PERMISSIONS.ADMIN_MONITOR_VIEW">刷新</el-button>
       </div>
     </el-card>
 

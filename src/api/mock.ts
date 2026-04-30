@@ -3,6 +3,8 @@ import type { DocStatus, DocType, DocFileVO, ParseResultVO } from '@/types/docum
 import type { GraphData } from '@/types/graph'
 import type { MatchDetailVO, MatchListItem } from '@/types/match'
 import { getDataStorage } from '@/utils/storage'
+import { PERMISSIONS } from '@/constants/permissions'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
 const genId = (prefix: string) => `${prefix}-${Math.random().toString(16).slice(2, 10)}`
 
@@ -12,7 +14,7 @@ type DocTask = {
   result: ParseResultVO
 }
 
-const DOC_TASKS_KEY = 'aimap.mock.docTasks'
+const DOC_TASKS_KEY = STORAGE_KEYS.MOCK_DOC_TASKS
 
 const readDocTasks = (): Record<string, DocTask> => {
   const storage = getDataStorage()
@@ -35,7 +37,14 @@ export const mockAuth = {
   async login(payload: { account: string; password: string; userType: UserType }) {
     const permissions =
       payload.userType === 'ADMIN'
-        ? ['ADMIN_USERS_VIEW', 'ADMIN_DOCS_VIEW', 'ADMIN_DATA_VIEW', 'ADMIN_MATCH_VIEW', 'ADMIN_MONITOR_VIEW', 'ADMIN_AUDIT_VIEW']
+        ? [
+            PERMISSIONS.ADMIN_USERS_VIEW,
+            PERMISSIONS.ADMIN_DOCS_VIEW,
+            PERMISSIONS.ADMIN_DATA_VIEW,
+            PERMISSIONS.ADMIN_MATCH_VIEW,
+            PERMISSIONS.ADMIN_MONITOR_VIEW,
+            PERMISSIONS.ADMIN_AUDIT_VIEW,
+          ]
         : []
     return {
       token: `mock-token-${payload.userType.toLowerCase()}`,

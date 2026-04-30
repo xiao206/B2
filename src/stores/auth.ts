@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
 export type UserType = 'PERSON' | 'COMPANY' | 'ADMIN'
 
@@ -8,8 +9,6 @@ export interface AuthState {
   userId: string
   permissions: string[]
 }
-
-const STORAGE_KEY = 'aimap.auth'
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
@@ -23,7 +22,7 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     hydrate() {
-      const raw = sessionStorage.getItem(STORAGE_KEY)
+      const raw = sessionStorage.getItem(STORAGE_KEYS.AUTH)
       if (!raw) return
       try {
         const data = JSON.parse(raw) as Partial<AuthState>
@@ -32,12 +31,12 @@ export const useAuthStore = defineStore('auth', {
         this.userId = data.userId ?? ''
         this.permissions = Array.isArray(data.permissions) ? data.permissions : []
       } catch {
-        sessionStorage.removeItem(STORAGE_KEY)
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH)
       }
     },
     persist() {
       sessionStorage.setItem(
-        STORAGE_KEY,
+        STORAGE_KEYS.AUTH,
         JSON.stringify({
           token: this.token,
           userType: this.userType,
@@ -58,8 +57,7 @@ export const useAuthStore = defineStore('auth', {
       this.userType = null
       this.userId = ''
       this.permissions = []
-      sessionStorage.removeItem(STORAGE_KEY)
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH)
     },
   },
 })
-

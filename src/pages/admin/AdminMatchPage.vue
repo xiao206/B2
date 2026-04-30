@@ -4,8 +4,11 @@ import { getDataStorage } from '@/utils/storage'
 import type { MatchFeedback, MatchHistoryItem } from '@/types/match'
 import { downloadCsv, downloadJson } from '@/utils/export'
 import { maskUserKey } from '@/utils/mask'
+import { formatDateTime } from '@/utils/date'
+import { PERMISSIONS } from '@/constants/permissions'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
-const MATCH_KEY = 'aimap.match'
+const MATCH_KEY = STORAGE_KEYS.MATCH
 
 const query = reactive<{ userKey: string; recordId: string }>({ userKey: '', recordId: '' })
 const tab = ref<'history' | 'feedback'>('history')
@@ -30,12 +33,6 @@ const load = () => {
 }
 
 onMounted(load)
-
-const fmt = (iso: string) => {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString()
-}
 
 const filteredHistory = computed(() => {
   const u = query.userKey.trim()
@@ -91,7 +88,7 @@ const exportCsv = () => {
           <div class="text-base font-semibold">匹配记录</div>
           <div class="mt-1 text-sm text-zinc-600">聚合查看用户端的匹配历史与反馈（读取本地存储）。</div>
         </div>
-        <el-button v-permission="'ADMIN_MATCH_VIEW'" @click="load">刷新</el-button>
+        <el-button v-permission="PERMISSIONS.ADMIN_MATCH_VIEW" @click="load">刷新</el-button>
       </div>
     </el-card>
 
@@ -100,8 +97,8 @@ const exportCsv = () => {
         <el-input v-model="query.userKey" placeholder="用户Key（如 PERSON:demo）" clearable />
         <el-input v-model="query.recordId" placeholder="RecordId" clearable />
         <div class="flex items-center justify-end">
-          <el-button v-permission="'ADMIN_MATCH_VIEW'" @click="exportJson">导出 JSON</el-button>
-          <el-button v-permission="'ADMIN_MATCH_VIEW'" type="primary" @click="exportCsv">导出 CSV</el-button>
+          <el-button v-permission="PERMISSIONS.ADMIN_MATCH_VIEW" @click="exportJson">导出 JSON</el-button>
+          <el-button v-permission="PERMISSIONS.ADMIN_MATCH_VIEW" type="primary" @click="exportCsv">导出 CSV</el-button>
         </div>
       </div>
     </el-card>
@@ -114,7 +111,7 @@ const exportCsv = () => {
 
       <el-table v-if="tab === 'history'" :data="filteredHistory">
         <el-table-column prop="viewedAt" label="时间" width="200">
-          <template #default="{ row }">{{ fmt(row.viewedAt) }}</template>
+          <template #default="{ row }">{{ formatDateTime(row.viewedAt) }}</template>
         </el-table-column>
         <el-table-column prop="userKey" label="用户" width="200">
           <template #default="{ row }">{{ maskUserKey(row.userKey) }}</template>
@@ -128,7 +125,7 @@ const exportCsv = () => {
 
       <el-table v-else :data="filteredFeedback">
         <el-table-column prop="createdAt" label="时间" width="200">
-          <template #default="{ row }">{{ fmt(row.createdAt) }}</template>
+          <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
         </el-table-column>
         <el-table-column prop="userKey" label="用户" width="200">
           <template #default="{ row }">{{ maskUserKey(row.userKey) }}</template>
