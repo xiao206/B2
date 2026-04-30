@@ -24,6 +24,7 @@ const loading = ref(true)
 const selectedId = ref<string>('')
 const drawerOpen = ref(false)
 const keyword = ref('')
+const oneHopOnly = ref(false)
 
 type ExpansionInfo = { nodeIds: string[]; edgeIds: string[] }
 const expandedByNode = ref<Record<string, ExpansionInfo>>({})
@@ -50,10 +51,19 @@ const neighborSet = computed(() => {
   return set
 })
 
+const viewData = computed<GraphData>(() => {
+  if (!oneHopOnly.value || !selectedId.value) return baseData.value
+  const set = neighborSet.value
+  return {
+    nodes: baseData.value.nodes.filter((n) => set.has(n.id)),
+    edges: baseData.value.edges.filter((e) => set.has(e.source) && set.has(e.target)),
+  }
+})
+
 const decorated = computed<GraphData>(() => {
   const focus = neighborSet.value
   const shouldDim = focus.size > 0
-  const nodes = baseData.value.nodes.map((n) => {
+  const nodes = viewData.value.nodes.map((n) => {
     if (!shouldDim) return n
     const isFocus = focus.has(n.id)
     const isSelected = n.id === selectedId.value
@@ -64,7 +74,7 @@ const decorated = computed<GraphData>(() => {
     }
     return { ...n, style }
   })
-  const edges = baseData.value.edges.map((e) => {
+  const edges = viewData.value.edges.map((e) => {
     if (!shouldDim) return e
     const onPath = focus.has(e.source) && focus.has(e.target)
     const style = { opacity: onPath ? 0.9 : 0.12 }
@@ -82,10 +92,20 @@ const suggestions = computed(() => {
     .map((n) => ({ value: n.label, id: n.id }))
 })
 
+const searchMatches = computed(() => {
+  const k = keyword.value.trim().toLowerCase()
+  if (!k) return []
+  return baseData.value.nodes
+    .filter((n) => n.label.toLowerCase().includes(k))
+    .slice(0, 20)
+    .map((n) => ({ id: n.id, label: n.label, type: n.type }))
+})
+
 const load = async () => {
   loading.value = true
   selectedId.value = ''
   drawerOpen.value = false
+  oneHopOnly.value = false
   expandedByNode.value = {}
   nodeRef.clear()
   edgeRef.clear()
@@ -104,11 +124,13 @@ const load = async () => {
 const onNodeClick = (payload: { id: string }) => {
   selectedId.value = payload.id
   drawerOpen.value = true
+  graphRef.value?.focusNode(payload.id)
 }
 
 const onCanvasClick = () => {
   selectedId.value = ''
   drawerOpen.value = false
+  oneHopOnly.value = false
 }
 
 const onPick = (item: any) => {
@@ -126,6 +148,7 @@ const collapseAll = () => {
   nodeRef.clear()
   edgeRef.clear()
   baseData.value = { nodes: originData.nodes.slice(), edges: originData.edges.slice() }
+  oneHopOnly.value = false
   if (selectedId.value && !originNodeIds.has(selectedId.value)) {
     selectedId.value = ''
     drawerOpen.value = false
@@ -230,10 +253,28 @@ onMounted(async () => {
             <el-option label="力导向" value="force" />
             <el-option label="层次" value="dagre" />
           </el-select>
+          <el-switch v-model="oneHopOnly" :disabled="!selectedId" active-text="一跳" inactive-text="全图" />
           <el-button @click="fitView">回到全局</el-button>
           <el-button :disabled="Object.keys(expandedByNode).length === 0" @click="collapseAll">收起全部</el-button>
           <el-button :loading="loading" @click="load">重置</el-button>
         </div>
+      </div>
+    </el-card>
+
+    <el-card v-if="keyword.trim() && searchMatches.length" shadow="never">
+      <div class="flex items-center justify-between">
+        <div class="text-sm font-semibold text-zinc-700 dark:text-zinc-200">搜索结果</div>
+        <div class="text-xs text-zinc-500">{{ searchMatches.length }} 条</div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <el-tag
+          v-for="n in searchMatches"
+          :key="n.id"
+          class="cursor-pointer"
+          @click="onPick({ id: n.id })"
+        >
+          {{ n.label }}
+        </el-tag>
       </div>
     </el-card>
 
