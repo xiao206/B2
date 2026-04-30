@@ -231,7 +231,7 @@ onMounted(async () => {
             <el-option label="层次" value="dagre" />
           </el-select>
           <el-button @click="fitView">回到全局</el-button>
-          <el-button :disabled="Object.keys(expandedByNode.value).length === 0" @click="collapseAll">收起全部</el-button>
+          <el-button :disabled="Object.keys(expandedByNode).length === 0" @click="collapseAll">收起全部</el-button>
           <el-button :loading="loading" @click="load">重置</el-button>
         </div>
       </div>
