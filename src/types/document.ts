@@ -13,7 +13,7 @@ export interface DocFileVO {
 export interface ParseResultVO {
   docId: string
   status: DocStatus
+  errorMessage?: string
   resultJson: unknown
   evidences?: Array<{ field: string; page?: number; text?: string }>
 }
-

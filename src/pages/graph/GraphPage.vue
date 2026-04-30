@@ -17,6 +17,7 @@ const title = computed(() => (isCompany.value ? '职位能力图谱' : '个人�
 
 const layout = ref<'force' | 'radial' | 'dagre'>('radial')
 const baseData = ref<GraphData>({ nodes: [], edges: [] })
+let originData: GraphData = { nodes: [], edges: [] }
 const webglOk = ref(true)
 const loading = ref(true)
 
@@ -90,6 +91,7 @@ const load = async () => {
   edgeRef.clear()
   try {
     baseData.value = isCompany.value ? await getJobGraph(subjectId.value) : await getPersonGraph(subjectId.value)
+    originData = { nodes: baseData.value.nodes.slice(), edges: baseData.value.edges.slice() }
     originNodeIds = new Set(baseData.value.nodes.map((n) => n.id))
     originEdgeIds = new Set(baseData.value.edges.map((e) => e.id))
   } catch (e: any) {
@@ -115,6 +117,19 @@ const onPick = (item: any) => {
   selectedId.value = id
   drawerOpen.value = true
   graphRef.value?.focusNode(id)
+}
+
+const fitView = () => graphRef.value?.fitView()
+
+const collapseAll = () => {
+  expandedByNode.value = {}
+  nodeRef.clear()
+  edgeRef.clear()
+  baseData.value = { nodes: originData.nodes.slice(), edges: originData.edges.slice() }
+  if (selectedId.value && !originNodeIds.has(selectedId.value)) {
+    selectedId.value = ''
+    drawerOpen.value = false
+  }
 }
 
 const isExpanded = computed(() => Boolean(selectedId.value && expandedByNode.value[selectedId.value]))
@@ -215,6 +230,8 @@ onMounted(async () => {
             <el-option label="力导向" value="force" />
             <el-option label="层次" value="dagre" />
           </el-select>
+          <el-button @click="fitView">回到全局</el-button>
+          <el-button :disabled="Object.keys(expandedByNode.value).length === 0" @click="collapseAll">收起全部</el-button>
           <el-button :loading="loading" @click="load">重置</el-button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { recommendCandidates, recommendJobs } from '@/api/match'
@@ -23,6 +23,11 @@ const list = ref<MatchListItem[]>([])
 const loading = ref(true)
 const tab = ref<'recommend' | 'favorite' | 'history'>('recommend')
 
+const query = reactive<{ keyword: string; sort: 'score_desc' | 'score_asc' | 'viewed_desc' | 'viewed_asc' }>({
+  keyword: '',
+  sort: 'score_desc',
+})
+
 const userKey = computed(() => `${auth.userType ?? 'ANON'}:${auth.userId || 'anon'}`)
 const favoriteSet = computed(() => matchStore.favoriteSet(userKey.value))
 const historyList = computed(() => matchStore.historyByUser(userKey.value).filter((h) => (isCompany.value ? h.side === 'COMPANY' : h.side === 'PERSON')))
@@ -38,6 +43,37 @@ const favoriteList = computed(() => {
     if (r) merged.set(id, r)
   }
   return Array.from(merged.values())
+})
+
+const keyword = computed(() => query.keyword.trim().toLowerCase())
+
+const filteredRecommend = computed(() => {
+  const k = keyword.value
+  const rows = !k ? list.value.slice() : list.value.filter((r) => `${r.title} ${r.org}`.toLowerCase().includes(k))
+  rows.sort((a, b) => (query.sort === 'score_asc' ? a.score - b.score : b.score - a.score))
+  return rows
+})
+
+const filteredFavorite = computed(() => {
+  const k = keyword.value
+  const rows = !k
+    ? favoriteList.value.slice()
+    : favoriteList.value.filter((r) => `${r.title} ${r.org}`.toLowerCase().includes(k))
+  rows.sort((a, b) => (query.sort === 'score_asc' ? a.score - b.score : b.score - a.score))
+  return rows
+})
+
+const filteredHistory = computed(() => {
+  const k = keyword.value
+  const rows = !k
+    ? historyList.value.slice()
+    : historyList.value.filter((r) => `${r.title} ${r.org}`.toLowerCase().includes(k))
+  rows.sort((a, b) => {
+    const ta = new Date(a.viewedAt).getTime()
+    const tb = new Date(b.viewedAt).getTime()
+    return query.sort === 'viewed_asc' ? ta - tb : tb - ta
+  })
+  return rows
 })
 
 const load = async () => {
@@ -90,12 +126,26 @@ const toggleFav = (recordId: string) => {
         <el-tab-pane label="历史" name="history" />
       </el-tabs>
 
+      <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <el-input v-model="query.keyword" placeholder="搜索（标题/组织）" clearable />
+        <el-select v-model="query.sort">
+          <el-option label="匹配度：高到低" value="score_desc" />
+          <el-option label="匹配度：低到高" value="score_asc" />
+          <el-option label="最近查看：新到旧" value="viewed_desc" />
+          <el-option label="最近查看：旧到新" value="viewed_asc" />
+        </el-select>
+        <div class="flex items-center justify-end">
+          <el-button v-if="tab === 'recommend'" :loading="loading" @click="load">刷新</el-button>
+          <el-button v-else @click="tab = 'recommend'">去推荐列表</el-button>
+        </div>
+      </div>
+
       <AppEmpty v-if="tab === 'recommend' && !loading && list.length === 0" description="暂无推荐数据。">
         <el-button type="primary" @click="load">刷新</el-button>
       </AppEmpty>
       <el-table
         v-if="tab === 'recommend'"
-        :data="list"
+        :data="filteredRecommend"
         v-loading="loading"
       >
         <el-table-column prop="title" label="名称" min-width="240" />
@@ -120,7 +170,7 @@ const toggleFav = (recordId: string) => {
       </AppEmpty>
       <el-table
         v-else-if="tab === 'favorite'"
-        :data="favoriteList"
+        :data="filteredFavorite"
       >
         <el-table-column prop="title" label="名称" min-width="240" />
         <el-table-column prop="org" label="组织/备注" min-width="180" />
@@ -140,7 +190,7 @@ const toggleFav = (recordId: string) => {
       <AppEmpty v-else-if="tab === 'history' && historyList.length === 0" description="暂无历史记录。" />
       <el-table
         v-else
-        :data="historyList"
+        :data="filteredHistory"
       >
         <el-table-column prop="title" label="名称" min-width="240" />
         <el-table-column prop="org" label="组织/备注" min-width="180" />

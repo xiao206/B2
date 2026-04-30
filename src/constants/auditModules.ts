@@ -1,6 +1,7 @@
 export const AUDIT_MODULES = {
   DOCUMENT_UPLOAD: 'document.upload',
   DOCUMENT_PARSE: 'document.parse',
+  DOCUMENT_PARSE_RETRY: 'document.parse.retry',
   MATCH_RECOMMEND: 'match.recommend',
   MATCH_DETAIL_OPEN: 'match.detail.open',
   MATCH_FAVORITE_TOGGLE: 'match.favorite.toggle',
@@ -9,4 +10,3 @@ export const AUDIT_MODULES = {
 } as const
 
 export type AuditModule = (typeof AUDIT_MODULES)[keyof typeof AUDIT_MODULES]
-

@@ -150,7 +150,13 @@ const focusNode = (id: string) => {
   else if (typeof anyGraph.centerElement === 'function') anyGraph.centerElement(id)
 }
 
-defineExpose({ focusNode })
+const fitView = () => {
+  if (!graph) return
+  const anyGraph = graph as any
+  if (typeof anyGraph.fitView === 'function') anyGraph.fitView(20)
+}
+
+defineExpose({ focusNode, fitView })
 </script>
 
 <template>

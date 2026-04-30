@@ -20,6 +20,11 @@ export async function getDocumentStatus(docId: string): Promise<{ id: string; st
   return http.get(`/document/${encodeURIComponent(docId)}/status`)
 }
 
+export async function retryDocumentParse(docId: string): Promise<{ id: string; status: string; errorMessage?: string }> {
+  if (isMockEnabled()) return mockDocument.retry(docId)
+  return http.post(`/document/${encodeURIComponent(docId)}/retry`, {})
+}
+
 export async function getParseResult(docId: string): Promise<ParseResultVO> {
   if (isMockEnabled()) return mockDocument.result(docId)
   return http.get(`/document/${encodeURIComponent(docId)}/result`)

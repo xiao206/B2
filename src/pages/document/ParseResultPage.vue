@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus'
 import { getParseResult } from '@/api/document'
 import type { ParseResultVO } from '@/types/document'
 import { useDocumentStore } from '@/stores/document'
+import AppEmpty from '@/components/AppEmpty.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -77,8 +78,11 @@ const goGraph = () => {
 
     <el-card shadow="never">
       <div v-if="loading" class="text-sm text-zinc-600">加载中...</div>
-      <div v-else-if="!data" class="text-sm text-zinc-600">暂无数据</div>
+      <AppEmpty v-else-if="!data" description="暂无数据" />
       <div v-else class="space-y-4">
+        <div v-if="data.status === 'FAILED' && data.errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ data.errorMessage }}
+        </div>
         <el-tabs>
           <el-tab-pane label="结构化字段">
             <el-descriptions :column="1" border>

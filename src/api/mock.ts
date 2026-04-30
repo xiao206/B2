@@ -12,6 +12,8 @@ type DocTask = {
   doc: DocFileVO
   startedAt: number
   result: ParseResultVO
+  shouldFail: boolean
+  errorMessage?: string
 }
 
 const DOC_TASKS_KEY = STORAGE_KEYS.MOCK_DOC_TASKS
@@ -59,6 +61,7 @@ export const mockDocument = {
   async upload(payload: { fileName: string; fileType: 'DOC' | 'PDF'; docType: DocType }) {
     const id = genId('doc')
     const now = Date.now()
+    const shouldFail = payload.fileName.toLowerCase().includes('fail')
     const doc: DocFileVO = {
       id,
       fileName: payload.fileName,
@@ -78,7 +81,7 @@ export const mockDocument = {
       evidences: [{ field: 'skills', page: 1, text: '熟悉 Vue3/TS、Spring Boot、SQL...' }],
     }
     const tasks = readDocTasks()
-    tasks[id] = { doc, startedAt: now, result }
+    tasks[id] = { doc, startedAt: now, result, shouldFail }
     writeDocTasks(tasks)
     return { docId: id }
   },
@@ -91,13 +94,29 @@ export const mockDocument = {
       throw err
     }
     const elapsed = Date.now() - task.startedAt
-    const status: DocStatus =
-      elapsed < 1500 ? 'PENDING' : elapsed < 4500 ? 'PROCESSING' : 'DONE'
+    const status: DocStatus = elapsed < 1500 ? 'PENDING' : elapsed < 4500 ? 'PROCESSING' : task.shouldFail ? 'FAILED' : 'DONE'
     task.doc.status = status
     task.result.status = status
+    task.errorMessage =
+      status === 'FAILED' ? '解析失败：检测到演示失败文件名（包含 fail），请点击“重试解析”或重新上传。' : undefined
+    task.result.errorMessage = task.errorMessage
     tasks[docId] = task
     writeDocTasks(tasks)
-    return { id: task.doc.id, status }
+    return { id: task.doc.id, status, errorMessage: task.errorMessage }
+  },
+  async retry(docId: string) {
+    const tasks = readDocTasks()
+    const task = tasks[docId]
+    if (!task) throw new Error('任务不存在')
+    task.startedAt = Date.now()
+    task.shouldFail = false
+    task.errorMessage = undefined
+    task.doc.status = 'PENDING'
+    task.result.status = 'PENDING'
+    task.result.errorMessage = undefined
+    tasks[docId] = task
+    writeDocTasks(tasks)
+    return { id: task.doc.id, status: task.doc.status }
   },
   async result(docId: string) {
     const tasks = readDocTasks()
