@@ -43,6 +43,8 @@ export interface RiasecMatch {
   similarity: number
 }
 
+export type MatchProgressStatus = 'NONE' | 'APPLIED' | 'CONTACTING' | 'INTERVIEW' | 'OFFER' | 'NOT_FIT'
+
 export interface MatchDetailVO {
   recordId: string
   score: number

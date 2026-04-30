@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { getDataStorage } from '@/utils/storage'
-import type { MatchFeedback, MatchHistoryItem, MatchListItem } from '@/types/match'
+import type { MatchFeedback, MatchHistoryItem, MatchListItem, MatchProgressStatus } from '@/types/match'
 import { useAuthStore } from '@/stores/auth'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
 
@@ -8,6 +8,7 @@ export interface MatchState {
   favorites: Record<string, string[]>
   history: MatchHistoryItem[]
   feedbacks: MatchFeedback[]
+  progress: Record<string, Record<string, { status: MatchProgressStatus; updatedAt: string }>>
 }
 
 const getUserKey = () => {
@@ -20,12 +21,14 @@ export const useMatchStore = defineStore('match', {
     favorites: {},
     history: [],
     feedbacks: [],
+    progress: {},
   }),
   getters: {
     favoriteSet: (s) => (userKey: string) => new Set(s.favorites[userKey] ?? []),
     feedbackByRecord: (s) => (userKey: string, recordId: string) =>
       s.feedbacks.filter((f) => f.userKey === userKey && f.recordId === recordId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     historyByUser: (s) => (userKey: string) => s.history.filter((h) => h.userKey === userKey).sort((a, b) => b.viewedAt.localeCompare(a.viewedAt)),
+    progressByRecord: (s) => (userKey: string, recordId: string) => s.progress[userKey]?.[recordId] ?? null,
   },
   actions: {
     hydrate() {
@@ -37,6 +40,7 @@ export const useMatchStore = defineStore('match', {
         this.favorites = data.favorites && typeof data.favorites === 'object' ? (data.favorites as Record<string, string[]>) : {}
         this.history = Array.isArray(data.history) ? (data.history as MatchHistoryItem[]) : []
         this.feedbacks = Array.isArray(data.feedbacks) ? (data.feedbacks as MatchFeedback[]) : []
+        this.progress = data.progress && typeof data.progress === 'object' ? (data.progress as MatchState['progress']) : {}
       } catch {
         storage.removeItem(STORAGE_KEYS.MATCH)
       }
@@ -49,6 +53,7 @@ export const useMatchStore = defineStore('match', {
           favorites: this.favorites,
           history: this.history,
           feedbacks: this.feedbacks,
+          progress: this.progress,
         }),
       )
     },
@@ -90,6 +95,14 @@ export const useMatchStore = defineStore('match', {
       this.feedbacks = this.feedbacks.slice(0, 500)
       this.persist()
       return fb
+    },
+    setProgress(recordId: string, status: MatchProgressStatus) {
+      const userKey = getUserKey()
+      const map = this.progress[userKey] ?? {}
+      map[recordId] = { status, updatedAt: new Date().toISOString() }
+      this.progress[userKey] = map
+      this.persist()
+      return map[recordId]
     },
   },
 })

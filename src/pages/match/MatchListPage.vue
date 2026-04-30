@@ -32,6 +32,17 @@ const userKey = computed(() => `${auth.userType ?? 'ANON'}:${auth.userId || 'ano
 const favoriteSet = computed(() => matchStore.favoriteSet(userKey.value))
 const historyList = computed(() => matchStore.historyByUser(userKey.value).filter((h) => (isCompany.value ? h.side === 'COMPANY' : h.side === 'PERSON')))
 
+const progressTag = (s: string) => {
+  if (s === 'APPLIED') return { type: 'success', label: isCompany.value ? '已邀约' : '已投递' }
+  if (s === 'CONTACTING') return { type: 'warning', label: '沟通中' }
+  if (s === 'INTERVIEW') return { type: 'warning', label: '面试中' }
+  if (s === 'OFFER') return { type: 'success', label: '已通过' }
+  if (s === 'NOT_FIT') return { type: 'danger', label: '不合适' }
+  return { type: 'info', label: '未标记' }
+}
+
+const progressOf = (recordId: string) => matchStore.progressByRecord(userKey.value, recordId)?.status ?? 'NONE'
+
 const favoriteList = computed(() => {
   const ids = favoriteSet.value
   const byId = new Map(list.value.map((x) => [x.recordId, x]))
@@ -150,6 +161,11 @@ const toggleFav = (recordId: string) => {
       >
         <el-table-column prop="title" label="名称" min-width="240" />
         <el-table-column prop="org" label="组织/备注" min-width="180" />
+        <el-table-column label="状态" width="140">
+          <template #default="{ row }">
+            <el-tag :type="progressTag(progressOf(row.recordId)).type">{{ progressTag(progressOf(row.recordId)).label }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="score" label="匹配度" width="120">
           <template #default="{ row }">
             <el-tag type="success">{{ row.score }}</el-tag>
@@ -174,6 +190,11 @@ const toggleFav = (recordId: string) => {
       >
         <el-table-column prop="title" label="名称" min-width="240" />
         <el-table-column prop="org" label="组织/备注" min-width="180" />
+        <el-table-column label="状态" width="140">
+          <template #default="{ row }">
+            <el-tag :type="progressTag(progressOf(row.recordId)).type">{{ progressTag(progressOf(row.recordId)).label }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="score" label="匹配度" width="120">
           <template #default="{ row }">
             <el-tag type="success">{{ row.score }}</el-tag>
@@ -194,6 +215,11 @@ const toggleFav = (recordId: string) => {
       >
         <el-table-column prop="title" label="名称" min-width="240" />
         <el-table-column prop="org" label="组织/备注" min-width="180" />
+        <el-table-column label="状态" width="140">
+          <template #default="{ row }">
+            <el-tag :type="progressTag(progressOf(row.recordId)).type">{{ progressTag(progressOf(row.recordId)).label }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="score" label="匹配度" width="120">
           <template #default="{ row }">
             <el-tag type="success">{{ row.score }}</el-tag>

@@ -6,6 +6,7 @@ import { getParseResult } from '@/api/document'
 import type { ParseResultVO } from '@/types/document'
 import { useDocumentStore } from '@/stores/document'
 import AppEmpty from '@/components/AppEmpty.vue'
+import { downloadCsv, downloadJson } from '@/utils/export'
 
 const route = useRoute()
 const router = useRouter()
@@ -59,6 +60,46 @@ const goGraph = () => {
   const subjectId = isCompany.value ? 'job-001' : 'person-001'
   router.push(`${base.value}/graph/${subjectId}`)
 }
+
+const downloadResult = () => {
+  if (!data.value) return
+  downloadJson(`parse-result-${docId.value}.json`, data.value)
+}
+
+const copyResult = async () => {
+  if (!data.value) return
+  const text = JSON.stringify(data.value.resultJson, null, 2)
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      const el = document.createElement('textarea')
+      el.value = text
+      el.style.position = 'fixed'
+      el.style.left = '-9999px'
+      document.body.appendChild(el)
+      el.focus()
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    }
+    ElMessage.success('已复制 JSON')
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
+
+const downloadEvidence = () => {
+  if (!data.value) return
+  downloadCsv(
+    `parse-evidences-${docId.value}.csv`,
+    (data.value.evidences || []).map((e) => ({
+      field: e.field,
+      page: e.page ?? '',
+      text: e.text ?? '',
+    })),
+  )
+}
 </script>
 
 <template>
@@ -72,6 +113,7 @@ const goGraph = () => {
         <div class="flex items-center gap-2">
           <el-button @click="router.push(`${base}/doc/task/${docId}`)">返回任务</el-button>
           <el-button type="primary" @click="goGraph">查看图谱</el-button>
+          <el-button v-if="data" @click="downloadResult">下载</el-button>
         </div>
       </div>
     </el-card>
@@ -123,11 +165,18 @@ const goGraph = () => {
             <div class="mt-4">
               <el-collapse>
                 <el-collapse-item title="解析结果（JSON）" name="json">
+                  <div class="mb-2 flex justify-end gap-2">
+                    <el-button size="small" @click="copyResult">复制 JSON</el-button>
+                    <el-button size="small" @click="downloadResult">下载结果</el-button>
+                  </div>
                   <pre class="max-h-[420px] overflow-auto rounded-lg bg-zinc-950 p-4 text-xs text-zinc-100">{{
                     JSON.stringify(data.resultJson, null, 2)
                   }}</pre>
                 </el-collapse-item>
                 <el-collapse-item title="证据（如有）" name="evidence">
+                  <div class="mb-2 flex justify-end">
+                    <el-button size="small" @click="downloadEvidence">下载证据 CSV</el-button>
+                  </div>
                   <el-table :data="data.evidences || []" size="small">
                     <el-table-column prop="field" label="字段" width="160" />
                     <el-table-column prop="page" label="页码" width="90" />

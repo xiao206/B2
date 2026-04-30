@@ -72,6 +72,16 @@ const riasecTargetTop = computed(() => (riasecTargetValues.value.length ? topRia
 
 const favorite = computed(() => matchStore.favoriteSet(userKey.value).has(recordId.value))
 const feedbackList = computed(() => matchStore.feedbackByRecord(userKey.value, recordId.value))
+const progress = computed(() => matchStore.progressByRecord(userKey.value, recordId.value)?.status ?? 'NONE')
+
+const progressTag = (s: string) => {
+  if (s === 'APPLIED') return { type: 'success', label: isCompany.value ? '已邀约' : '已投递' }
+  if (s === 'CONTACTING') return { type: 'warning', label: '沟通中' }
+  if (s === 'INTERVIEW') return { type: 'warning', label: '面试中' }
+  if (s === 'OFFER') return { type: 'success', label: '已通过' }
+  if (s === 'NOT_FIT') return { type: 'danger', label: '不合适' }
+  return { type: 'info', label: '未标记' }
+}
 
 const feedbackDlg = ref(false)
 const feedbackForm = reactive<{ rating: 1 | 2 | 3 | 4 | 5; tags: string[]; comment: string }>({
@@ -133,6 +143,11 @@ const toggleFav = () => {
   audit.logOk(AUDIT_MODULES.MATCH_FAVORITE_TOGGLE, { recordId: recordId.value })
 }
 
+const setProgress = (v: any) => {
+  matchStore.setProgress(recordId.value, v)
+  audit.logOk(AUDIT_MODULES.MATCH_PROGRESS_SET, { recordId: recordId.value, status: v })
+}
+
 const clearFeedback = async () => {
   await ElMessageBox.confirm('仅清空当前记录的本地反馈，确认继续？', '提示', { type: 'warning' })
   matchStore.hydrate()
@@ -172,6 +187,23 @@ onMounted(load)
               <div class="mt-2 text-3xl font-semibold text-zinc-900">{{ detail.score }}</div>
               <div class="mt-2">
                 <el-progress :percentage="detail.score" :stroke-width="10" />
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-zinc-200 bg-white p-4">
+              <div class="flex items-center justify-between">
+                <div class="text-sm font-semibold text-zinc-700">状态</div>
+                <el-tag :type="progressTag(progress).type">{{ progressTag(progress).label }}</el-tag>
+              </div>
+              <div class="mt-3">
+                <el-select class="w-full" :model-value="progress" @update:model-value="setProgress">
+                  <el-option label="未标记" value="NONE" />
+                  <el-option :label="isCompany ? '已邀约' : '已投递'" value="APPLIED" />
+                  <el-option label="沟通中" value="CONTACTING" />
+                  <el-option label="面试中" value="INTERVIEW" />
+                  <el-option label="已通过" value="OFFER" />
+                  <el-option label="不合适" value="NOT_FIT" />
+                </el-select>
               </div>
             </div>
 
